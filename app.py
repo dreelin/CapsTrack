@@ -36,42 +36,28 @@ def save_data(df):
 
 bets = load_data()
 
-def fetch_games(url, retries=3, backoff=2):
-    """
-    Fetch games from SofaScore with retry and User-Agent.
-    
-    Args:
-        url (str): API endpoint
-        retries (int): number of retries on failure
-        backoff (int): seconds to wait between retries, multiplied each retry
-
-    Returns:
-        list: list of game events (empty if failed)
-    """
+def fetch_games(url):
     headers = {
         "User-Agent": (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
             "AppleWebKit/537.36 (KHTML, like Gecko) "
             "Chrome/117.0.0.0 Safari/537.36"
-        )
+        ),
+        "Accept": "application/json, text/javascript, */*; q=0.01",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Referer": "https://www.sofascore.com/",
+        "X-Requested-With": "XMLHttpRequest"
     }
-
-    attempt = 0
-    while attempt < retries:
-        try:
-            resp = requests.get(url, headers=headers, timeout=10)
-            if resp.status_code == 200:
-                return resp.json().get("events", [])
-            else:
-                st.warning(f"SofaScore API returned {resp.status_code} on attempt {attempt + 1}")
-        except requests.RequestException as e:
-            st.warning(f"SofaScore request failed on attempt {attempt + 1}: {e}")
-        
-        attempt += 1
-        time.sleep(backoff * attempt)  # exponential backoff
-
-    st.error("Failed to fetch games from SofaScore after multiple attempts.")
-    return []
+    try:
+        resp = requests.get(url, headers=headers, timeout=10)
+        if resp.status_code == 200:
+            return resp.json().get("events", [])
+        else:
+            st.warning(f"SofaScore API returned {resp.status_code}")
+            return []
+    except requests.RequestException as e:
+        st.error(f"Error fetching SofaScore: {e}")
+        return []
 
 def format_game_tile(game, is_past=True):
     start_dt = datetime.fromtimestamp(game["startTimestamp"])
