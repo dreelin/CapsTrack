@@ -254,7 +254,7 @@ with st.expander("➕ Add New Bet", expanded=True):
                         st.error("Selected game not found")
                         st.stop()
                     game_text = f"{game_data['away_team']} vs {game_data['home_team']}"
-                    game_date = game_data["date_obj"]
+                    game_date = game_data["date_obj"].date()
                     game_id = game_data["id"]
 
                 # Process legs
