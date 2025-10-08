@@ -306,13 +306,6 @@ for user, units in USERS.items():
 if "show_details" not in st.session_state:
     st.session_state.show_details = False
 
-# Drive visibility from query param (?details=1) so clicking the amount (a link) toggles
-_qp = st.experimental_get_query_params()
-if "details" in _qp:
-    st.session_state.show_details = True
-else:
-    st.session_state.show_details = False
-
 # -------------------
 # Summary header row (H2, colored text)
 # -------------------
@@ -326,34 +319,32 @@ col1.markdown(f"<h2 style='color:{header_color}; text-align:center;'>Skeet Summa
 # Middle: W-L
 col2.markdown(f"<h2 style='color:{header_color}; text-align:center;'>{wins}-{losses}</h2>", unsafe_allow_html=True)
 
-# Right: Amount text is now the toggle (click to show/hide details)
+# Right: Amount acts as toggle (styled checkbox label, no navigation)
 with col3:
-    # Determine target link to toggle param
-    current_params = st.experimental_get_query_params()
-    if "details" in current_params:
-        # Remove details param
-        current_params.pop("details", None)
-        if current_params:
-            # rebuild query string
-            pairs = [f"{k}={v[0]}" for k, v in current_params.items() if v]
-            toggle_href = "?" + "&".join(pairs)
-        else:
-            toggle_href = "?"  # no params
-    else:
-        # Add details=1
-        current_params["details"] = ["1"]
-        pairs = [f"{k}={v[0]}" for k, v in current_params.items() if v]
-        toggle_href = "?" + "&".join(pairs)
-
-    col3_html = f"""
-    <div style='text-align:center;'>
-        <h2 style='margin:0;'>
-            <a href='{toggle_href}' style='color:{header_color}; text-decoration:none;'>${total_profit:.2f}</a>
-        </h2>
-        <div style='font-size:10px; margin-top:2px; color:#888;'>(click amount for details)</div>
-    </div>
-    """
-    st.markdown(col3_html, unsafe_allow_html=True)
+    st.markdown(
+        f"""
+        <style>
+        /* Hide the actual checkbox square for this specific key */
+        div.stCheckbox > label > div:first-child {{display:none;}}
+        /* Style the label to look like the original amount heading */
+        div.stCheckbox > label {{
+            font-size:2rem !important;
+            font-weight:700 !important;
+            color:{header_color} !important;
+            padding-left:0 !important;
+            cursor:pointer;
+            line-height:1;
+        }}
+        /* Remove extra gap under the element */
+        div.stCheckbox {{margin-bottom:0;}}
+        div.toggle-hint {{font-size:10px; margin-top:2px; color:#888;}}
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+    # Checkbox returns the new state; use same session key so it persists
+    st.session_state.show_details = st.checkbox(f"${total_profit:.2f}", value=st.session_state.show_details, key="show_details")
+    st.markdown("<div class='toggle-hint'>(click amount for details)</div>", unsafe_allow_html=True)
 
 # -------------------
 # User breakdown (conditional)
