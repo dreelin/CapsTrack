@@ -5,6 +5,8 @@ from datetime import datetime
 import requests
 import time
 import pytz
+from streamlit_cookies_manager import EncryptedCookieManager
+
 
 st.set_page_config(page_title="Caps Bet Tracker", layout="wide")
 
@@ -36,6 +38,11 @@ USERS = {
 
 DATA_FILE = "bets.csv"
 
+cookies = EncryptedCookieManager(prefix="capstrack_")
+
+if not cookies.ready():
+    st.stop()
+
 # -----------------------------
 # Load/Save Data
 # -----------------------------
@@ -51,6 +58,21 @@ def save_data(df):
     df.to_csv(DATA_FILE, index=False)
 
 bets = load_data()
+
+if "auth" not in st.session_state:
+    st.session_state.auth = cookies.get("auth") == "ok"
+
+if not st.session_state.auth:
+    pw = st.text_input("Password", type="password")
+    if pw == PASSWORD:
+        st.session_state.auth = True
+        cookies["auth"] = "ok"
+        cookies.save()
+        st.success("Authenticated! Reloading...")
+        st.rerun()
+    st.stop()
+
+st.write("✅ Authenticated!")
 
 # -----------------------------
 # ESPN Schedule
