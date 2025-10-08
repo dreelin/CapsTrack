@@ -6,7 +6,7 @@ import requests
 import time
 import pytz
 from streamlit_cookies_manager import EncryptedCookieManager
-
+import ast
 
 st.set_page_config(page_title="Caps Bet Tracker", layout="wide")
 
@@ -348,7 +348,24 @@ else:
 # -----------------------------
 st.subheader("📜 Bet History")
 bets_display = bets.copy()
-bets_display["legs"] = bets_display["legs"].apply(lambda x: ", ".join(x) if isinstance(x, list) else str(x))
+
+# Convert legs column back to list if it was saved as a string list
+def parse_legs(x):
+    if isinstance(x, list):
+        return x
+    try:
+        # Try to parse string representation of list
+        parsed = ast.literal_eval(x)
+        if isinstance(parsed, list):
+            return parsed
+        return [str(parsed)]
+    except Exception:
+        # Fallback: split by comma
+        return [s.strip() for s in str(x).split(",")]
+
+bets_display["legs"] = bets_display["legs"].apply(parse_legs)
+
+# Render with Streamlit dataframe (pills may appear automatically)
 st.dataframe(bets_display.sort_values("date", ascending=False), use_container_width=True)
 
 st.markdown("<div id='user-breakdown'></div>", unsafe_allow_html=True)
