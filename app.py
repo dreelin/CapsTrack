@@ -306,6 +306,13 @@ for user, units in USERS.items():
 if "show_details" not in st.session_state:
     st.session_state.show_details = False
 
+# Drive visibility from query param (?details=1) so clicking the amount (a link) toggles
+_qp = st.experimental_get_query_params()
+if "details" in _qp:
+    st.session_state.show_details = True
+else:
+    st.session_state.show_details = False
+
 # -------------------
 # Summary header row (H2, colored text)
 # -------------------
@@ -319,35 +326,34 @@ col1.markdown(f"<h2 style='color:{header_color}; text-align:center;'>Skeet Summa
 # Middle: W-L
 col2.markdown(f"<h2 style='color:{header_color}; text-align:center;'>{wins}-{losses}</h2>", unsafe_allow_html=True)
 
-# Right: Amount + small button inline
+# Right: Amount text is now the toggle (click to show/hide details)
 with col3:
-    # CSS and flex container to hold amount + button on one line
-    st.markdown(
-        """
-        <style>
-        .inline-amount-row {display:flex; align-items:flex-start; justify-content:center;}
-        .inline-amount-row h2 {margin:0; line-height:1;}
-        .inline-amount-row .stButton {margin-left:4px;}
-        .inline-amount-row .stButton button {
-            padding:0 4px !important;
-            font-size:10px !important;
-            line-height:1 !important;
-            height:16px !important;
-            min-height:0 !important;
-            border-radius:4px;
-        }
-        </style>
-        <div class='inline-amount-row'>
-        """,
-        unsafe_allow_html=True
-    )
-    # Amount (no extra braces so value renders)
-    st.markdown(f"<h2 style='color:{header_color};'>$ {total_profit:.2f}</h2>", unsafe_allow_html=True)
-    # Tiny toggle button
-    if st.button("i", key="view_details_btn"):
-        st.session_state.show_details = not st.session_state.show_details
-    # Close container
-    st.markdown("</div>", unsafe_allow_html=True)
+    # Determine target link to toggle param
+    current_params = st.experimental_get_query_params()
+    if "details" in current_params:
+        # Remove details param
+        current_params.pop("details", None)
+        if current_params:
+            # rebuild query string
+            pairs = [f"{k}={v[0]}" for k, v in current_params.items() if v]
+            toggle_href = "?" + "&".join(pairs)
+        else:
+            toggle_href = "?"  # no params
+    else:
+        # Add details=1
+        current_params["details"] = ["1"]
+        pairs = [f"{k}={v[0]}" for k, v in current_params.items() if v]
+        toggle_href = "?" + "&".join(pairs)
+
+    col3_html = f"""
+    <div style='text-align:center;'>
+        <h2 style='margin:0;'>
+            <a href='{toggle_href}' style='color:{header_color}; text-decoration:none;'>${total_profit:.2f}</a>
+        </h2>
+        <div style='font-size:10px; margin-top:2px; color:#888;'>(click amount for details)</div>
+    </div>
+    """
+    st.markdown(col3_html, unsafe_allow_html=True)
 
 # -------------------
 # User breakdown (conditional)
