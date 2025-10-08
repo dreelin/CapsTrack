@@ -167,6 +167,69 @@ for i, game in enumerate(cards[:5]):
     """
     cols[i].markdown(html, unsafe_allow_html=True)
 
+
+
+
+
+# -------------------
+# summary data
+# -------------------
+wins = len(bets[bets["result"] == "win"])
+losses = len(bets[bets["result"] == "loss"])
+total_profit = bets["profit"].sum()
+
+
+# Compute user summary
+user_summary = []
+for user, units in USERS.items():
+    user_amount = total_profit / 10 * units
+    user_summary.append((user, units, user_amount))
+
+
+# -------------------
+# Summary header row (H2, colored text)
+# -------------------
+header_color = "green" if total_profit >= 0 else "red"
+
+col1, col2, col3 = st.columns([2,1,2])
+
+# Left: Skeet Summary
+col1.markdown(f"<h2 style='color:{header_color}; text-align:center;'>Skeet Summary</h2>", unsafe_allow_html=True)
+
+# Middle: W-L
+col2.markdown(f"<h2 style='color:{header_color}; text-align:center;'>{wins}-{losses}</h2>", unsafe_allow_html=True)
+
+col3.markdown(f"<h2 style='color:{header_color}; text-align:center;'>"
+              f"<a class='jump-to-user-breakdown' href='#user-breakdown' style='color:{header_color}; text-decoration:none;'>${total_profit:.2f}</a>"
+              "</h2>", unsafe_allow_html=True)
+
+# -----------------------------
+# Bankroll Chart
+# -----------------------------
+st.subheader("Profit Chart")
+
+if not bets.empty:
+    # Drop bets without a date
+    bets_sorted = bets.dropna(subset=["date"]).copy()
+
+    # Ensure 'date' is datetime
+    bets_sorted["date"] = pd.to_datetime(bets_sorted["date"])
+
+    # Group by date (ignore time) and sum profit per day
+    daily_profit = bets_sorted.groupby(bets_sorted["date"].dt.date)["profit"].sum().reset_index()
+
+    # Compute cumulative profit
+    daily_profit["cumulative_profit"] = daily_profit["profit"].cumsum()
+
+    # Format date as mm/dd for x-axis
+    daily_profit["date_str"] = daily_profit["date"].apply(lambda d: d.strftime("%m/%d"))
+
+    # Plot
+    st.line_chart(daily_profit.set_index("date_str")["cumulative_profit"])
+else:
+    st.info("No bets yet — add some to see the bankroll chart!")
+
+
 # -----------------------------
 # Add Bet Form (fixed)
 # -----------------------------
@@ -185,7 +248,7 @@ game_options = format_game_dropdown(cards)
 closest_upcoming_index = 2 if len(past_games) >= 2 else len(past_games)
 default_game = game_options[closest_upcoming_index]
 
-with st.expander("➕ Add New Bet", expanded=True):
+with st.expander("Add Bet", expanded=False):
     with st.form("new_bet"):
         # ---------------------
         # Determine default game properly
@@ -283,95 +346,10 @@ with st.expander("➕ Add New Bet", expanded=True):
                 save_data(bets)
                 st.success("Bet saved!")
 
-
-
-# -------------------
-# summary data
-# -------------------
-wins = len(bets[bets["result"] == "win"])
-losses = len(bets[bets["result"] == "loss"])
-total_profit = bets["profit"].sum()
-
-
-# Compute user summary
-user_summary = []
-for user, units in USERS.items():
-    user_amount = total_profit / 10 * units
-    user_summary.append((user, units, user_amount))
-
-
-# -------------------
-# Summary header row (H2, colored text)
-# -------------------
-header_color = "green" if total_profit >= 0 else "red"
-
-col1, col2, col3 = st.columns([2,1,2])
-
-# Left: Skeet Summary
-col1.markdown(f"<h2 style='color:{header_color}; text-align:center;'>Skeet Summary</h2>", unsafe_allow_html=True)
-
-# Middle: W-L
-col2.markdown(f"<h2 style='color:{header_color}; text-align:center;'>{wins}-{losses}</h2>", unsafe_allow_html=True)
-
-col3.markdown(f"<h2 style='color:{header_color}; text-align:center;'>"
-              f"<a class='jump-to-user-breakdown' href='#user-breakdown' style='color:{header_color}; text-decoration:none;'>${total_profit:.2f}</a>"
-              "</h2>", unsafe_allow_html=True)
-
-# -----------------------------
-# Bankroll Chart
-# -----------------------------
-st.subheader("💰 Bankroll Growth")
-
-if not bets.empty:
-    # Drop bets without a date
-    bets_sorted = bets.dropna(subset=["date"]).copy()
-
-    # Ensure 'date' is datetime
-    bets_sorted["date"] = pd.to_datetime(bets_sorted["date"])
-
-    # Group by date (ignore time) and sum profit per day
-    daily_profit = bets_sorted.groupby(bets_sorted["date"].dt.date)["profit"].sum().reset_index()
-
-    # Compute cumulative profit
-    daily_profit["cumulative_profit"] = daily_profit["profit"].cumsum()
-
-    # Format date as mm/dd for x-axis
-    daily_profit["date_str"] = daily_profit["date"].apply(lambda d: d.strftime("%m/%d"))
-
-    # Plot
-    st.line_chart(daily_profit.set_index("date_str")["cumulative_profit"])
-else:
-    st.info("No bets yet — add some to see the bankroll chart!")
-
-
 # -----------------------------
 # Bet History
 # -----------------------------
-st.subheader("📜 Bet History")
-bets_display = bets.copy()
-
-# Convert legs column back to list if it was saved as a string list
-def parse_legs(x):
-    if isinstance(x, list):
-        return x
-    try:
-        # Try to parse string representation of list
-        parsed = ast.literal_eval(x)
-        if isinstance(parsed, list):
-            return parsed
-        return [str(parsed)]
-    except Exception:
-        # Fallback: split by comma
-        return [s.strip() for s in str(x).split(",")]
-
-bets_display["legs"] = bets_display["legs"].apply(parse_legs)
-
-# Render with Streamlit dataframe (pills may appear automatically)
-st.dataframe(bets_display.sort_values("date", ascending=False), use_container_width=True)
-
-
-
-st.subheader("📜 Bet History")
+st.subheader("Bet History")
 bets_display = bets.copy()
 bets_display["legs"] = bets_display["legs"].apply(parse_legs)
 
