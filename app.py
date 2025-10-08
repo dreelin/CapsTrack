@@ -154,17 +154,30 @@ default_game = game_options[closest_upcoming_index]
 with st.expander("➕ Add New Bet", expanded=True):
     with st.form("new_bet"):
         # ---------------------
-        # Game / Date / Name Columns
+        # Determine default game properly
         # ---------------------
-        col_date, col_name, col_game = st.columns([1,2,2])
+        upcoming_games = [g for g in cards if g["status_type"] != "completed"]
+        if upcoming_games:
+            nearest_game = upcoming_games[0]
+            nearest_game_text = f"{nearest_game['date_str']} {nearest_game['away_team']} vs {nearest_game['home_team']}"
+        else:
+            nearest_game_text = "Manual"
+
+        # Format dropdown options (without showing ID)
+        game_options = [f"{g['date_str']} {g['away_team']} vs {g['home_team']}" for g in cards] + ["Manual"]
+
+        # ---------------------
+        # Columns: Dropdown first
+        # ---------------------
+        col_game, col_date, col_name = st.columns([2,1,2])
         with col_game:
-            selected_game = st.selectbox("Game", options=game_options, index=game_options.index(default_game))
+            selected_game = st.selectbox("Game", options=game_options, index=game_options.index(nearest_game_text))
+        manual = selected_game == "Manual"
+
         with col_date:
             manual_date = st.date_input("Date", datetime.today())
         with col_name:
             manual_name = st.text_input("Game Name", "")
-
-        manual = selected_game == "Manual"
 
         # ---------------------
         # Odds / Amount / Result
@@ -178,7 +191,7 @@ with st.expander("➕ Add New Bet", expanded=True):
             result = st.selectbox("Result", ["pending", "win", "loss"])
 
         # ---------------------
-        # Legs as text area
+        # Legs
         # ---------------------
         legs_text = st.text_area("Legs (one per line)", value="Capitals Moneyline\nA. Ovechkin 1+ Goal", height=100)
 
@@ -199,13 +212,14 @@ with st.expander("➕ Add New Bet", expanded=True):
                 if manual:
                     if not manual_name or not manual_date:
                         st.error("Manual game requires both Date and Game Name")
-                    else:
-                        game_text = manual_name
-                        game_date = manual_date
-                        game_id = ""
+                        st.stop()
+                    game_text = manual_name
+                    game_date = manual_date
+                    game_id = ""
                 else:
-                    # Use selected game data
-                    game_data = next((g for g in cards if f"{g['date_str']} {g['away_team']} vs {g['home_team']}" == selected_game), None)
+                    # Find selected game in cards
+                    game_data = next((g for g in cards
+                                      if f"{g['date_str']} {g['away_team']} vs {g['home_team']}" == selected_game), None)
                     if not game_data:
                         st.error("Selected game not found")
                         st.stop()
