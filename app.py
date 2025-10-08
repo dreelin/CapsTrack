@@ -244,7 +244,7 @@ with st.expander("", expanded=False):
     # Use empty label to hide expander arrow text; arrow itself will still toggle
     # Show header as first row inside expander
     col1, col2, col3 = st.columns([1,1,1])
-    col1.markdown(f"<h2 style='color:{header_color};text-align:center'>{wins+losses}</h2>", unsafe_allow_html=True)
+    col1.markdown(f"<h2 style='color:{header_color};text-align:center'>Skeet Summary</h2>", unsafe_allow_html=True)
     col2.markdown(f"<h2 style='color:{header_color};text-align:center'>{wins}-{losses}</h2>", unsafe_allow_html=True)
     col3.markdown(f"<h2 style='color:{header_color};text-align:center'>${total_profit:.2f}</h2>", unsafe_allow_html=True)
 
@@ -258,20 +258,6 @@ with st.expander("", expanded=False):
         uc2.markdown(f"<div style='text-align:center'><small>{units}</small></div>", unsafe_allow_html=True)
         uc3.markdown(f"<div style='text-align:center'><small style='color:{color}'>${user_amount:.2f}</small></div>", unsafe_allow_html=True)
 
-
-
-st.subheader("📊 Summary")
-
-
-
-
-
-summary_df = pd.DataFrame({
-    "Metric": ["Total Bets", "Record (W-L)", "Total Profit/Loss ($)"],
-    "Value": [total_bets, f"{wins}-{losses}", f"${total_profit:.2f}"],
-})
-
-st.table(summary_df)
 
 # -----------------------------
 # User Breakdown (Units)
