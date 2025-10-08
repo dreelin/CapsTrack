@@ -9,7 +9,26 @@ from streamlit_cookies_manager import EncryptedCookieManager
 import ast
 
 
-st.set_page_config(page_title="Caps Bet Tracker", layout="wide")
+st.set_page_config(page_title="Caps Bet Tracker", layout="wide", initial_sidebar_state="collapsed")
+
+hide_streamlit_style = """
+    <style>
+    /* Hide hamburger menu */
+    #MainMenu {visibility: hidden;}
+    /* Hide footer */
+    footer {visibility: hidden;}
+    /* Optional: hide header bar */
+    header {visibility: hidden;}
+    </style>
+"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
+st.markdown("""
+    <style>
+    .css-18e3th9 {padding-top: 0rem;}   /* Main container top padding */
+    .css-1d391kg {padding-top: 0rem;}   /* Older versions may need this */
+    </style>
+""", unsafe_allow_html=True)
 
 st.markdown("""
 <script>
