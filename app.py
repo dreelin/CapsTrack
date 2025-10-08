@@ -379,6 +379,12 @@ bets_display["legs"] = bets_display["legs"].apply(parse_legs)
 bets_display["date_str"] = bets_display["date"].apply(lambda d: d.strftime("%m/%d/%Y") if pd.notnull(d) else "")
 bets_display["profit_str"] = bets_display["profit"].apply(lambda p: f"${p:.2f}")
 
+# Header row
+header_cols = st.columns([1, 3, 3, 1, 1, 1, 1, 1])
+header_titles = ["Date", "Game", "Legs", "Odds", "Amount", "Result", "Profit", "Settle Bet"]
+for col, title in zip(header_cols, header_titles):
+    col.markdown(f"**{title}**", unsafe_allow_html=True)
+
 # Build table manually
 for i, row in bets_display.sort_values("date", ascending=False).iterrows():
     cols = st.columns([1, 3, 3, 1, 1, 1, 1, 1])  # Adjust widths
