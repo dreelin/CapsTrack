@@ -322,10 +322,20 @@ col3.markdown(f"<h2 style='color:{header_color}; text-align:center;'>"
 st.subheader("💰 Bankroll Growth")
 
 if not bets.empty:
-    bets_sorted = bets.sort_values("date").dropna(subset=["date"])
-    bets_sorted["date"] = bets_sorted["date"].dt.date  # optional: remove time
-    bets_sorted["cumulative_profit"] = bets_sorted["profit"].cumsum()
-    st.line_chart(bets_sorted.set_index("date")["cumulative_profit"])
+    # Drop bets without a date
+    bets_sorted = bets.dropna(subset=["date"]).copy()
+
+    # Ensure 'date' is datetime
+    bets_sorted["date"] = pd.to_datetime(bets_sorted["date"])
+
+    # Group by date (ignore time) and sum profit per day
+    daily_profit = bets_sorted.groupby(bets_sorted["date"].dt.date)["profit"].sum().reset_index()
+
+    # Compute cumulative profit
+    daily_profit["cumulative_profit"] = daily_profit["profit"].cumsum()
+
+    # Plot: use date only as x-axis
+    st.line_chart(daily_profit.set_index("date")["cumulative_profit"])
 else:
     st.info("No bets yet — add some to see the bankroll chart!")
 
