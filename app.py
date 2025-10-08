@@ -281,32 +281,56 @@ if "show_details" not in st.session_state:
     st.session_state.show_details = False
 
 # -------------------
-# Summary header row
+# Summary row as colored card
 # -------------------
 header_color = "green" if total_profit >= 0 else "red"
 
-col1, col2, col3 = st.columns([2,1,1])
-col1.markdown(f"<h2 style='color:black;text-align:center'>Skeet Summary</h2>", unsafe_allow_html=True)
-col2.markdown(f"<h2 style='color:black;text-align:center'>{wins}-{losses}</h2>", unsafe_allow_html=True)
+# Container for the card
+with st.container():
+    st.markdown(
+        f"""
+        <div style="
+            background-color:{header_color};
+            padding:15px 10px;
+            border-radius:10px;
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+        ">
+            <div style="flex:2; text-align:center; font-weight:bold; color:black; font-size:20px;">
+                Skeet Summary
+            </div>
+            <div style="flex:1; text-align:center; font-weight:bold; color:black; font-size:20px;">
+                {wins}-{losses}
+            </div>
+            <div style="flex:1; text-align:center; font-weight:bold; color:black; font-size:20px; display:flex; justify-content:center; align-items:center;">
+                <span>${total_profit:.2f}</span>
+            </div>
+            <div style="flex:0 0 auto;">
+    """,
+        unsafe_allow_html=True
+    )
 
-# Amount column with small "View Details" button
-with col3:
-    st.markdown(f"<h2 style='color:{header_color};display:inline'>${total_profit:.2f}</h2>", unsafe_allow_html=True)
+    # Small inline button for View Details
     if st.button("View Details", key="view_details_btn"):
         st.session_state.show_details = not st.session_state.show_details
+
+    st.markdown("</div></div>", unsafe_allow_html=True)
 
 # -------------------
 # User breakdown (conditional)
 # -------------------
 if st.session_state.show_details:
     st.write("")  # spacing
-    st.markdown("<hr>", unsafe_allow_html=True)  # separator
+    st.markdown("<hr>", unsafe_allow_html=True)
 
     for name, units, user_amount in user_summary:
-        color = "green" if user_amount >=0 else "red"
-        st.markdown(f"<div style='text-align:center'><span>{name} ({units} units): </span>"
-                    f"<span style='color:{color}'>${user_amount:.2f}</span></div>",
-                    unsafe_allow_html=True)
+        color = "green" if user_amount >= 0 else "red"
+        st.markdown(
+            f"<div style='text-align:center'><span>{name} ({units} units): </span>"
+            f"<span style='color:{color}'>${user_amount:.2f}</span></div>",
+            unsafe_allow_html=True
+        )
 
 # -----------------------------
 # Bankroll Chart
