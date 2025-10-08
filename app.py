@@ -400,7 +400,7 @@ for i, row in bets_display.sort_values("date", ascending=False).iterrows():
     cols[4].markdown(row["amount"])
     cols[5].markdown(row["result"])
     color = "green" if row["profit"] > 0 else "red" if row["profit"] < 0 else "gray"
-    cols[6].markdown(f"<span style='color:{color}'>{row["profit_str"]}</span>")
+    cols[6].markdown(f"<span style='color:{color}'>{row["profit_str"]}</span>", unsafe_allow_html=True)
     
     # Settle Bet buttons
     if row["result"] == "pending" and st.session_state.auth:
