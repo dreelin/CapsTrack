@@ -347,7 +347,28 @@ else:
 # Bet History
 # -----------------------------
 st.subheader("📜 Bet History")
-st.dataframe(bets.sort_values("date", ascending=False), use_container_width=True)
+if not bets.empty:
+    # Sort bets by date descending
+    bets_sorted = bets.sort_values("date", ascending=False).reset_index(drop=True)
+    
+    for idx, row in bets_sorted.iterrows():
+        # Create HTML for legs
+        legs_html = " ".join(
+            f"<span style='display:inline-block; background:#ddd; border-radius:12px; padding:2px 8px; margin:2px; font-size:0.8rem;'>{l}</span>"
+            for l in row["legs"]
+        )
+        
+        st.markdown(f"""
+        <div style="border:1px solid #ccc; border-radius:10px; padding:8px; margin-bottom:6px;">
+            <strong>{row['game']}</strong> — {row['date'].strftime('%m/%d')}<br>
+            Odds: {row['odds']}, Amount: ${row['amount']}, Result: {row['result']}<br>
+            {legs_html}
+        </div>
+        """, unsafe_allow_html=True)
+else:
+    st.info("No bets yet — add some to see bet history!")
+
+
 
 st.markdown("<div id='user-breakdown'></div>", unsafe_allow_html=True)
 st.markdown("<hr>", unsafe_allow_html=True)
