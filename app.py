@@ -373,57 +373,65 @@ st.dataframe(bets_display.sort_values("date", ascending=False), use_container_wi
 
 
 
+st.subheader("📜 Bet History")
 bets_display = bets.copy()
 bets_display["legs"] = bets_display["legs"].apply(parse_legs)
 
-# Format columns
+# Format date and profit
 bets_display["date_str"] = bets_display["date"].apply(lambda d: d.strftime("%m/%d/%Y") if pd.notnull(d) else "")
 bets_display["profit_str"] = bets_display["profit"].apply(lambda p: f"${p:.2f}")
 
-# Display each row manually
+# Build table manually
 for i, row in bets_display.sort_values("date", ascending=False).iterrows():
-    cols = st.columns([1, 2, 3, 1, 1, 1, 1, 2])  # Adjust widths as needed
+    cols = st.columns([1, 2, 3, 1, 1, 1, 1, 2])  # Adjust widths
     
+    # Date
     cols[0].markdown(row["date_str"])
+    
+    # Game
     cols[1].markdown(row["game"])
-    # Render legs as pills
-    legs_html = " ".join([f"<span style='display:inline-block; padding:2px 8px; border-radius:12px; background:#eee; margin:2px;'>{l}</span>" for l in row["legs"]])
+    
+    # Legs as pills (colored for readability)
+    legs_html = ""
+    for l in row["legs"]:
+        legs_html += f"<span style='display:inline-block; padding:2px 8px; border-radius:12px; background:#2563eb; color:white; margin:2px; font-size:12px'>{l}</span>"
     cols[2].markdown(legs_html, unsafe_allow_html=True)
+    
+    # Odds, amount, result, profit
     cols[3].markdown(row["odds"])
     cols[4].markdown(row["amount"])
     cols[5].markdown(row["result"])
     cols[6].markdown(row["profit_str"])
     
-    # Settle Bet column
+    # Settle Bet buttons
     if row["result"] == "pending" and st.session_state.auth:
         settle_col = cols[7]
-        settle_subcols = settle_col.columns([1, 1, 1])
+        btn_cols = settle_col.columns([1,1,1])
         
-        # Win button with image
+        # Win button with Caps logo
         response = requests.get("https://a.espncdn.com/guid/cbe677ee-361e-91b4-5cae-6c4c30044743/logos/secondary_logo_on_primary_color.png")
-        img = Image.open(BytesIO(response.content)).resize((30,30))  # small size
-        if settle_subcols[0].button("", key=f"win_{i}"):
-            # Update the bet
+        img = Image.open(BytesIO(response.content)).resize((20,20))
+        if btn_cols[0].button("", key=f"win_{i}"):
             bets.at[i, "result"] = "win"
             profit = bets.at[i, "amount"] * (100 / abs(bets.at[i, "odds"])) if bets.at[i, "odds"] < 0 else bets.at[i, "amount"] * (bets.at[i, "odds"] / 100)
-            bets.at[i, "profit"] = profit
+            bets.at[i, "profit"] = round(profit,2)
             save_data(bets)
-            st.experimental_rerun()
-        settle_subcols[0].image(img)
+            st.rerun()
+        btn_cols[0].image(img)
         
         # Loss button
-        if settle_subcols[1].button("L", key=f"loss_{i}"):
+        if btn_cols[1].button("L", key=f"loss_{i}"):
             bets.at[i, "result"] = "loss"
             bets.at[i, "profit"] = -bets.at[i, "amount"]
             save_data(bets)
-            st.experimental_rerun()
+            st.rerun()
         
         # Void button
-        if settle_subcols[2].button("V", key=f"void_{i}"):
+        if btn_cols[2].button("V", key=f"void_{i}"):
             bets.at[i, "result"] = "void"
             bets.at[i, "profit"] = 0
             save_data(bets)
-            st.experimental_rerun()
+            st.rerun()
 
 st.markdown("<div id='user-breakdown'></div>", unsafe_allow_html=True)
 st.markdown("<hr>", unsafe_allow_html=True)
