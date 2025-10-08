@@ -204,28 +204,28 @@ if not st.session_state["auth"]:
 # -----------------------------
 # Add Bet Form
 # -----------------------------
-if st.session_state["auth"]:
-    with st.expander("➕ Add New Bet"):
-        with st.form("new_bet"):
-            date = st.date_input("Date", datetime.today())
-            game = st.text_input("Game (e.g. Caps vs Rangers)")
-            legs = st.text_area("Legs (e.g. Caps ML, Ovechkin to score)")
-            odds = st.number_input("Odds (American)", value=-110)
-            amount = st.number_input("Amount ($)", value=10.0)
-            result = st.selectbox("Result", ["pending", "win", "loss"])
-            submit = st.form_submit_button("Save Bet")
-            if submit:
-                new_row = {
-                    "date": date,
-                    "game": game,
-                    "legs": legs,
-                    "odds": odds,
-                    "amount": amount,
-                    "result": result,
-                }
-                bets = pd.concat([bets, pd.DataFrame([new_row])], ignore_index=True)
-                save_data(bets)
-                st.success("Bet saved!")
+
+with st.expander("➕ Add New Bet"):
+    with st.form("new_bet"):
+        date = st.date_input("Date", datetime.today())
+        game = st.text_input("Game (e.g. Caps vs Rangers)")
+        legs = st.text_area("Legs (e.g. Caps ML, Ovechkin to score)")
+        odds = st.number_input("Odds (American)", value=-110)
+        amount = st.number_input("Amount ($)", value=10.0)
+        result = st.selectbox("Result", ["pending", "win", "loss"])
+        submit = st.form_submit_button("Save Bet")
+        if submit:
+            new_row = {
+                "date": date,
+                "game": game,
+                "legs": legs,
+                "odds": odds,
+                "amount": amount,
+                "result": result,
+            }
+            bets = pd.concat([bets, pd.DataFrame([new_row])], ignore_index=True)
+            save_data(bets)
+            st.success("Bet saved!")
 
 # -----------------------------
 # Summary Stats
