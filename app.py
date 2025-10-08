@@ -134,9 +134,8 @@ for i, game in enumerate(cards[:5]):
     cols[i].markdown(html, unsafe_allow_html=True)
 
 # -----------------------------
-# Add Bet Form (working with Streamlit forms)
+# Add Bet Form (fixed)
 # -----------------------------
-# Make sure session state for legs exists
 if "legs_inputs" not in st.session_state:
     st.session_state.legs_inputs = ["Capitals Moneyline", "A. Ovechkin 1+ Goal"]
 
@@ -144,66 +143,94 @@ if "legs_inputs" not in st.session_state:
 def format_game_dropdown(games):
     options = []
     for g in games:
-        try:
-            dt = g["date_obj"]
-            options.append(f"{dt.strftime('%-m/%-d')} {g['away_team']} vs {g['home_team']}||{g['id']}")
-        except Exception:
-            continue
+        options.append(f"{g['date_str']} {g['away_team']} vs {g['home_team']}")
     options.append("Manual")
     return options
 
-game_options = format_game_dropdown(cards)  # cards = 5 games from scoreboard
+game_options = format_game_dropdown(cards)
 closest_upcoming_index = 2 if len(past_games) >= 2 else len(past_games)
 default_game = game_options[closest_upcoming_index]
 
 with st.expander("➕ Add New Bet", expanded=True):
     with st.form("new_bet"):
+        # ---------------------
         # Game selection
+        # ---------------------
         selected_game = st.selectbox("Game", options=game_options, index=game_options.index(default_game))
         manual = selected_game == "Manual"
 
-        # Manual inputs if manual selected
+        # ---------------------
+        # Manual Game Inputs
+        # ---------------------
         if manual:
-            date = st.date_input("Date", datetime.today())
-            game_text = st.text_input("Game (e.g. Caps vs Rangers)")
+            col1, col2 = st.columns([1,2])
+            with col1:
+                date = st.date_input("Game Date", datetime.today(), key="manual_date")
+            with col2:
+                game_text = st.text_input("Game Name", key="manual_game")
+            game_id = ""
         else:
+            # Predefined game
             date = None
-            game_text = selected_game.split("||")[0]  # store the display text
-            game_id = selected_game.split("||")[1]   # store the ESPN game ID
+            game_text = selected_game
+            # find game id from cards list
+            game_id = next((g["id"] for g in cards if f"{g['date_str']} {g['away_team']} vs {g['home_team']}" == selected_game), "")
 
-        # Dynamic legs
+        # ---------------------
+        # Odds / Amount / Result (single line)
+        # ---------------------
+        col_odds, col_amount, col_result = st.columns([1,1,1])
+        with col_odds:
+            odds = st.number_input("Odds (American)", value=-110)
+        with col_amount:
+            amount = st.number_input("Amount ($)", value=69.0)
+        with col_result:
+            result = st.selectbox("Result", ["pending", "win", "loss"])
+
+        # ---------------------
+        # Dynamic Legs
+        # ---------------------
+        st.markdown("**Legs**")
         new_legs = []
+        remove_idx = -1  # track if a remove button is pressed
+
         for idx, val in enumerate(st.session_state.legs_inputs):
-            new_val = st.text_input(f"Leg {idx+1}", value=val, key=f"leg_{idx}")
+            cols = st.columns([5,1])
+            with cols[0]:
+                new_val = st.text_input(f"Leg {idx+1}", value=val, key=f"leg_{idx}")
+            with cols[1]:
+                if st.form_submit_button("X", key=f"remove_{idx}"):
+                    remove_idx = idx
             new_legs.append(new_val)
 
-        # Option to add a new leg
-        add_leg = st.checkbox("Add another leg")
-        if add_leg:
+        # Remove leg if requested
+        if remove_idx >= 0:
+            new_legs.pop(remove_idx)
+
+        # Add empty leg
+        if st.form_submit_button("Add Leg", key="add_leg"):
             new_legs.append("")
-        st.session_state.legs_inputs = new_legs  # save back to session state
 
-        # Odds and amount
-        odds = st.number_input("Odds (American)", value=-110)
-        amount = st.number_input("Amount ($)", value=69.0)
+        st.session_state.legs_inputs = [l for l in new_legs if l]
 
-        # Result
-        result = st.selectbox("Result", ["pending", "win", "loss"])
-
-        # Password check
+        # ---------------------
+        # Password
+        # ---------------------
         pw = st.text_input("Password to save bet", type="password")
 
-        # Submit
+        # ---------------------
+        # Submit Bet
+        # ---------------------
         submit = st.form_submit_button("Save Bet")
         if submit:
             if pw != PASSWORD:
                 st.error("Incorrect password, bet not saved.")
             else:
                 new_row = {
-                    "date": date if manual else "",  # only manual
+                    "date": date if manual else "",
                     "game": game_text,
-                    "game_id": game_id if not manual else "",
-                    "legs": new_legs,
+                    "game_id": game_id,
+                    "legs": st.session_state.legs_inputs,
                     "odds": odds,
                     "amount": amount,
                     "result": result
