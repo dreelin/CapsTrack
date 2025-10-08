@@ -204,76 +204,97 @@ if not st.session_state["auth"]:
 # -----------------------------
 # Add Bet Form
 # -----------------------------
-with st.expander("➕ Add New Bet", expanded=True):
-    with st.form("new_bet"):
-        # --- Game dropdown ---
-        game_labels = [f"{g['date'].strftime('%-m/%-d')} vs {g['away_team'] if g['home_team']=='Washington Capitals' else g['home_team']}" 
-                       for g in cards] + ["Manual"]
-        # Find index of first upcoming game
-        upcoming_index = 0
-        for i, g in enumerate(cards):
-            status_type = get_status_name(g)
-            if status_type != "completed":
-                upcoming_index = i
-                break
-
-        selected_game_label = st.selectbox("Game", options=game_labels, index=upcoming_index)
-
-        # Determine game details
-        if selected_game_label == "Manual":
-            date = st.date_input("Date", datetime.today())
-            home_team = st.text_input("Home Team")
-            away_team = st.text_input("Away Team")
-            game_id = None
-        else:
-            idx = game_labels.index(selected_game_label)
-            g = cards[idx]
-            comp = g["competitions"][0]
-            game_id = g["id"]
-            home_team = comp["competitors"][0]["team"]["displayName"]
-            away_team = comp["competitors"][1]["team"]["displayName"]
-            date = datetime.fromisoformat(comp.get("date").replace("Z","+00:00")).astimezone(EASTERN).date()
-
-        # --- Dynamic Legs Input ---
-        if "legs_list" not in st.session_state:
-            st.session_state.legs_list = ["Capitals Moneyline", "A. Ovechkin 1+ Goal"]
-
-        legs_container = st.container()
-        for i, leg in enumerate(st.session_state.legs_list):
-            new_leg = legs_container.text_input(f"Leg {i+1}", value=leg, key=f"leg_{i}")
-            st.session_state.legs_list[i] = new_leg
-
-        if st.button("Add Leg"):
-            st.session_state.legs_list.append("")
-
-        # --- Other Inputs ---
-        odds = st.number_input("Odds (American)", value=-110)
-        amount = st.number_input("Amount ($)", value=69.0)
-        pw = st.text_input("Password", type="password")
-
-        # --- Form Submission ---
-        submit = st.form_submit_button("Save Bet")
-        if submit:
-            if pw != PASSWORD:
-                st.error("Incorrect password")
+def add_bet_form(bets, scoreboard_games, password, users):
+    """
+    scoreboard_games: list of dicts like [{'label': '10/8 vs Rangers', 'data': {...}}, ...]
+    bets: pd.DataFrame
+    password: str
+    users: dict of username->units
+    """
+    with st.expander("➕ Add New Bet", expanded=True):
+        with st.form("new_bet"):
+            # -------------------
+            # Game selection
+            # -------------------
+            game_options = [g['label'] for g in scoreboard_games] + ["Manual"]
+            
+            # Default to first upcoming game
+            default_idx = 0
+            for i, g in enumerate(scoreboard_games):
+                status = g['data'].get("status_type", "upcoming")
+                if status != "completed":
+                    default_idx = i
+                    break
+            
+            selected_game_label = st.selectbox("Select Game", options=game_options, index=default_idx)
+            
+            # Show manual inputs only if selected
+            if selected_game_label == "Manual":
+                date = st.date_input("Date", datetime.today())
+                home_team = st.text_input("Home Team")
+                away_team = st.text_input("Away Team")
             else:
-                new_row = {
-                    "date": date,
-                    "home_team": home_team,
-                    "away_team": away_team,
-                    "game_id": game_id,
-                    "legs": st.session_state.legs_list.copy(),
-                    "odds": odds,
-                    "amount": amount,
-                    "result": "pending"
-                }
-                bets = pd.concat([bets, pd.DataFrame([new_row])], ignore_index=True)
-                save_data(bets)
-                st.success("Bet saved!")
+                # grab game info from scoreboard_games
+                game_data = next(g['data'] for g in scoreboard_games if g['label'] == selected_game_label)
+                date = game_data.get("date")  # ISO string or datetime
+                home_team = game_data.get("home_team", "")
+                away_team = game_data.get("away_team", "")
+            
+            # -------------------
+            # Legs (dynamic list)
+            # -------------------
+            if "legs_inputs" not in st.session_state:
+                st.session_state.legs_inputs = ["Capitals Moneyline", "A. Ovechkin 1+ Goal"]
+            
+            # Render current legs
+            legs_container = st.container()
+            new_legs = []
+            for idx, val in enumerate(st.session_state.legs_inputs):
+                col1, col2 = st.columns([4,1])
+                with col1:
+                    new_val = st.text_input(f"Leg {idx+1}", value=val, key=f"leg_{idx}")
+                    new_legs.append(new_val)
+                with col2:
+                    if st.button("Remove", key=f"remove_{idx}"):
+                        new_legs[idx] = None  # mark for removal
+            # Filter out removed
+            st.session_state.legs_inputs = [l for l in new_legs if l]
 
-                # Reset legs to defaults after submission
-                st.session_state.legs_list = ["Capitals Moneyline", "A. Ovechkin 1+ Goal"]
+            # Add new leg button
+            if st.button("Add Leg"):
+                st.session_state.legs_inputs.append("")
 
+            # -------------------
+            # Odds / Amount / Result / Password
+            # -------------------
+            odds = st.number_input("Odds (American)", value=-110)
+            amount = st.number_input("Amount ($)", value=69.0)
+            result = st.selectbox("Result", ["pending", "win", "loss"])
+            pw_input = st.text_input("Password to save bet", type="password")
+            
+            submit = st.form_submit_button("Save Bet")
+            
+            if submit:
+                if pw_input != password:
+                    st.error("Incorrect password — bet not saved")
+                else:
+                    # Build bet row
+                    new_row = {
+                        "date": date,
+                        "game": selected_game_label,
+                        "home_team": home_team,
+                        "away_team": away_team,
+                        "legs": st.session_state.legs_inputs.copy(),
+                        "odds": odds,
+                        "amount": amount,
+                        "result": result
+                    }
+                    bets = pd.concat([bets, pd.DataFrame([new_row])], ignore_index=True)
+                    bets.to_csv("bets.csv", index=False)
+                    st.success("Bet saved!")
+                    # Reset legs
+                    st.session_state.legs_inputs = ["Capitals Moneyline", "A. Ovechkin 1+ Goal"]
+    return bets
 
 # -----------------------------
 # Summary Stats
