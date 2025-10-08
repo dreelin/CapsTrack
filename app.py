@@ -321,32 +321,39 @@ col2.markdown(f"<h2 style='color:{header_color}; text-align:center;'>{wins}-{los
 
 # Right: Amount + small button inline
 with col3:
-    # Inject CSS to shrink ONLY very small buttons (global effect but intended primarily for the info button)
+    # CSS to make the toggle button appear as a tiny superscript to the amount
     st.markdown(
-        """
+        f"""
         <style>
-        /* Make buttons very small (used for details toggle) */
-        div.stButton > button {
-            padding: 0 4px !important;
-            font-size: 10px !important;
-            line-height: 1 !important;
-            height: 18px !important;
-            min-height: 0 !important;
-        }
+        /* Wrapper keeps amount and next button visually inline */
+        div.amount-wrapper {{
+            display:inline-block;
+            position:relative;
+        }}
+        /* Style and position the st.button right after amount wrapper */
+        div.amount-wrapper + div.stButton {{
+            display:inline-block !important;
+            position:relative;
+            top:-10px; /* raise to superscript */
+            margin-left:4px;
+        }}
+        div.amount-wrapper + div.stButton > button {{
+            padding:0 4px !important;
+            font-size:10px !important;
+            line-height:1 !important;
+            height:16px !important;
+            min-height:0 !important;
+            border-radius:50%;
+        }}
         </style>
+        <div class='amount-wrapper'><h2 style='color:{header_color}; margin:0;'>${{total_profit:.2f}}</h2></div>
         """,
         unsafe_allow_html=True
     )
 
-    amt_col, btn_col = st.columns([12,1])
-    amt_col.markdown(
-        f"<h2 style='color:{header_color}; margin:0; display:inline-block;'>${total_profit:.2f}</h2>",
-        unsafe_allow_html=True
-    )
-    with btn_col:
-        # Use a very short label to mimic superscript / icon
-        if st.button("ⓘ", key="view_details_btn"):
-            st.session_state.show_details = not st.session_state.show_details
+    # The button will be positioned (via sibling CSS) as a superscript icon
+    if st.button("Details", key="view_details_btn"):
+        st.session_state.show_details = not st.session_state.show_details
 
 # -------------------
 # User breakdown (conditional)
