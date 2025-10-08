@@ -30,6 +30,37 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+
+st.markdown("""
+<style>
+/* Collapse all st-emotion-cache elements */
+[class^="st-emotion-cache-"] {
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+}
+
+/* Also collapse any nested children just in case */
+[class^="st-emotion-cache-"] * {
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+}
+
+/* Remove main container top padding */
+.css-18e3th9 {padding-top: 0rem !important;}
+.css-1d391kg {padding-top: 0rem !important;}
+
+/* Hide Streamlit default menu, header, footer */
+#MainMenu {visibility: hidden;}
+header {visibility: hidden;}
+footer {visibility: hidden;}
+</style>
+""", unsafe_allow_html=True)
+
+
 st.markdown("""
 <script>
 document.addEventListener('DOMContentLoaded', () => {
