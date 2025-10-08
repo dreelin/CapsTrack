@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime
 import requests
+import time
 
 st.set_page_config(page_title="Caps Bet Tracker", layout="wide")
 st.title("🏒 Caps Bet Tracker")
@@ -35,12 +36,42 @@ def save_data(df):
 
 bets = load_data()
 
-def fetch_games(url):
-    resp = requests.get(url)
-    if resp.status_code != 200:
-        st.warning(f"Failed to fetch data from SofaScore: {resp.status_code}")
-        return []
-    return resp.json().get("events", [])
+def fetch_games(url, retries=3, backoff=2):
+    """
+    Fetch games from SofaScore with retry and User-Agent.
+    
+    Args:
+        url (str): API endpoint
+        retries (int): number of retries on failure
+        backoff (int): seconds to wait between retries, multiplied each retry
+
+    Returns:
+        list: list of game events (empty if failed)
+    """
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/117.0.0.0 Safari/537.36"
+        )
+    }
+
+    attempt = 0
+    while attempt < retries:
+        try:
+            resp = requests.get(url, headers=headers, timeout=10)
+            if resp.status_code == 200:
+                return resp.json().get("events", [])
+            else:
+                st.warning(f"SofaScore API returned {resp.status_code} on attempt {attempt + 1}")
+        except requests.RequestException as e:
+            st.warning(f"SofaScore request failed on attempt {attempt + 1}: {e}")
+        
+        attempt += 1
+        time.sleep(backoff * attempt)  # exponential backoff
+
+    st.error("Failed to fetch games from SofaScore after multiple attempts.")
+    return []
 
 def format_game_tile(game, is_past=True):
     start_dt = datetime.fromtimestamp(game["startTimestamp"])
