@@ -42,7 +42,6 @@ bets = load_data()
 # Scoreboard
 # -----------------------------
 
-
 def fetch_espn_schedule(team_id):
     url = f"https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/teams/{team_id}/schedule"
     try:
@@ -53,68 +52,87 @@ def fetch_espn_schedule(team_id):
         st.error(f"Failed to fetch ESPN schedule: {e}")
         return []
 
+def get_status_name(game):
+    """Return status type name lowercase from competitions[0], safely."""
+    try:
+        return game["competitions"][0]["status"]["type"]["name"].lower()
+    except (KeyError, IndexError):
+        return ""
+
 def build_game_card(game):
-    # Determine if past or future
-    status = game["status"]["type"]["name"].lower()
-    start_dt = datetime.fromisoformat(game["date"].replace("Z", "+00:00"))
-    
-    # Teams and scores
-    home_team = game["competitions"][0]["competitors"][0]["team"]["displayName"]
-    away_team = game["competitions"][0]["competitors"][1]["team"]["displayName"]
-    home_score = game["competitions"][0]["competitors"][0].get("score", "")
-    away_score = game["competitions"][0]["competitors"][1].get("score", "")
+    try:
+        comp = game["competitions"][0]
+        home = comp["competitors"][0]
+        away = comp["competitors"][1]
 
-    # Background
-    if status == "completed":
-        capitals_won = (
-            (home_team == "Washington Capitals" and int(home_score) > int(away_score)) or
-            (away_team == "Washington Capitals" and int(away_score) > int(home_score))
+        home_team = home["team"]["displayName"]
+        away_team = away["team"]["displayName"]
+
+        home_score = home.get("score") or ""
+        away_score = away.get("score") or ""
+
+        # Status
+        status_type = comp["status"]["type"]["name"].lower()
+        status_id = comp["status"]["type"].get("id", 0)
+        is_past = status_type == "completed"
+
+        # Background and result
+        if is_past:
+            capitals_won = (
+                (home_team == "Washington Capitals" and int(home_score) > int(away_score)) or
+                (away_team == "Washington Capitals" and int(away_score) > int(home_score))
+            )
+            result_text = "W" if capitals_won else "L"
+            if status_id != 1:  # id != 1 → OT
+                result_text += " OT"
+            bg_color = "#d4f4dd" if capitals_won else "#f8d3d3"
+        else:
+            result_text = ""
+            bg_color = "#ffffff"
+
+        start_dt = datetime.fromisoformat(comp.get("date", game.get("date")).replace("Z", "+00:00"))
+
+        # Gamecast link
+        gamecast_url = next(
+            (link["href"] for link in game.get("links", []) if "gamecast" in link.get("rel", [])),
+            "#"
         )
-        bg_color = "#d4f4dd" if capitals_won else "#f8d3d3"
-        result_text = "W" if capitals_won else "L"
-    else:
-        bg_color = "#ffffff"
-        result_text = ""
 
-    # Gamecast link
-    gamecast_url = next(
-        (link["href"] for link in game["links"] if link["rel"][0] == "gamecast"), "#"
-    )
-
-    # HTML card
-    html = f"""
-    <a href="{gamecast_url}" target="_blank" style="text-decoration:none;color:inherit;">
-    <div style="
-        border-radius:10px;
-        border:1px solid #ccc;
-        padding:10px;
-        margin:5px;
-        width:250px;
-        background-color:{bg_color};
-        box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
-    ">
-        <strong>{start_dt.strftime('%Y-%m-%d %H:%M')} {result_text}</strong><br>
-        <div style="display:flex; justify-content:space-between;">
-            <span>{away_team}</span><span>{away_score}</span>
+        html = f"""
+        <a href="{gamecast_url}" target="_blank" style="text-decoration:none;color:inherit;">
+        <div style="
+            border-radius:10px;
+            border:1px solid #ccc;
+            padding:10px;
+            margin:5px;
+            width:250px;
+            background-color:{bg_color};
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+        ">
+            <strong>{start_dt.strftime('%Y-%m-%d %H:%M')} {result_text}</strong><br>
+            <div style="display:flex; justify-content:space-between;">
+                <span>{away_team}</span><span>{away_score}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between;">
+                <span>{home_team}</span><span>{home_score}</span>
+            </div>
         </div>
-        <div style="display:flex; justify-content:space-between;">
-            <span>{home_team}</span><span>{home_score}</span>
-        </div>
-    </div>
-    </a>
-    """
-    return html
+        </a>
+        """
+        return html
+    except Exception as e:
+        st.warning(f"Error building game card: {e}")
+        return "<div>Invalid game data</div>"
 
 # Fetch schedule
 games = fetch_espn_schedule(TEAM_ID)
 
 # Split past/future
-past_games = [g for g in games if g["status"]["type"]["name"].lower() == "completed"]
-future_games = [g for g in games if g["status"]["type"]["name"].lower() != "completed"]
+past_games = [g for g in games if get_status_name(g) == "completed"]
+future_games = [g for g in games if get_status_name(g) != "completed"]
 
-# Decide which to show
-cards = past_games[-2:] + future_games[:3]  # last 2 past + first 3 future
-# Ensure 5 cards total
+# Determine 5 cards
+cards = past_games[-2:] + future_games[:3]
 if len(cards) < 5:
     needed = 5 - len(cards)
     cards += future_games[3:3+needed]
