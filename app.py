@@ -8,6 +8,20 @@ import pytz
 
 st.set_page_config(page_title="Caps Bet Tracker", layout="wide")
 
+st.markdown("""
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.jump-to-user-breakdown').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      const target = document.getElementById('user-breakdown');
+      if (target) target.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+});
+</script>
+""", unsafe_allow_html=True)
+
 # -----------------------------
 # Configuration
 # -----------------------------
@@ -319,49 +333,9 @@ col1.markdown(f"<h2 style='color:{header_color}; text-align:center;'>Skeet Summa
 # Middle: W-L
 col2.markdown(f"<h2 style='color:{header_color}; text-align:center;'>{wins}-{losses}</h2>", unsafe_allow_html=True)
 
-# Right: Amount acts as toggle (styled clickable amount text, no navigation)
-with col3:
-    # Wrapper div to scope styles
-    st.markdown("<div class='amount-block'>", unsafe_allow_html=True)
-    if st.button(f"${total_profit:.2f}", key="amount_toggle"):
-        st.session_state.show_details = not st.session_state.get("show_details", False)
-    st.markdown("</div>", unsafe_allow_html=True)
-    # Scoped CSS so only this button looks like plain heading text
-    st.markdown(f"""
-    <style>
-    .amount-block button {{
-        all: unset !important; /* strip all default styles */
-        color:{header_color} !important;
-        font-size:2rem !important;
-        font-weight:700 !important;
-        line-height:1 !important;
-        cursor:pointer !important;
-        display:inline-block !important;
-        padding:0 !important;
-        margin:0 !important;
-    }}
-    .amount-block button:focus {{outline:none !important;}}
-    .amount-block button:hover {{text-decoration:underline;}}
-    /* Remove any container styling Streamlit might add */
-    .amount-block button div, .amount-block button span {{all: unset !important;}}
-    </style>
-    <div style='font-size:10px; margin-top:2px; color:#888;'>(click amount for details)</div>
-    """, unsafe_allow_html=True)
-
-# -------------------
-# User breakdown (conditional)
-# -------------------
-if st.session_state.show_details:
-    st.write("")  # spacing
-    st.markdown("<hr>", unsafe_allow_html=True)
-
-    for name, units, user_amount in user_summary:
-        color = "green" if user_amount >= 0 else "red"
-        st.markdown(
-            f"<div style='text-align:center'><span>{name} ({units} units): </span>"
-            f"<span style='color:{color}'>${user_amount:.2f}</span></div>",
-            unsafe_allow_html=True
-        )
+col3.markdown(f"<h2 style='color:{header_color}; text-align:center;'>"
+              f"<a class='jump-to-user-breakdown' href='#user-breakdown' style='color:{header_color}; text-decoration:none;'>${total_profit:.2f}</a>"
+              "</h2>", unsafe_allow_html=True)
 
 # -----------------------------
 # Bankroll Chart
@@ -381,3 +355,14 @@ else:
 # -----------------------------
 st.subheader("📜 Bet History")
 st.dataframe(bets.sort_values("date", ascending=False), use_container_width=True)
+
+st.markdown("<div id='user-breakdown'></div>", unsafe_allow_html=True)
+st.markdown("<hr>", unsafe_allow_html=True)
+
+for name, units, user_amount in user_summary:
+    color = "green" if user_amount >= 0 else "red"
+    st.markdown(
+        f"<div style='text-align:center'><span>{name} ({units} units): </span>"
+        f"<span style='color:{color}'>${user_amount:.2f}</span></div>",
+        unsafe_allow_html=True
+    )
