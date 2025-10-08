@@ -258,90 +258,36 @@ for user, units in USERS.items():
     user_amount = total_profit / 10 * units
     user_summary.append((user, units, user_amount))
 
-import streamlit as st
-
 # -------------------
-# Example summary data
-# -------------------
-wins = 5
-losses = 3
-total_profit = 120
-USERS = {"Alice": 3, "Bob": 2, "Charlie": 5}
-
-# Compute user summary
-user_summary = []
-for user, units in USERS.items():
-    user_amount = total_profit / 10 * units
-    user_summary.append((user, units, user_amount))
-
-# -------------------
-# Session state for modal
-# -------------------
-if "show_modal" not in st.session_state:
-    st.session_state.show_modal = False
-
-# -------------------
-# Summary row as a "clickable button"
+# Summary row as styled expander
 # -------------------
 header_color = "green" if total_profit >= 0 else "red"
-if st.button(
-    f"{wins+losses} | {wins}-{losses} | ${total_profit:.2f}",
-    key="summary_row",
-):
-    st.session_state.show_modal = True
+summary_label = f"{wins+losses} | {wins}-{losses} | ${total_profit:.2f}"
 
-# -------------------
-# Modal overlay
-# -------------------
-if st.session_state.show_modal:
-    modal_css = """
-    <style>
-    .modal-background {
-        position: fixed;
-        top:0; left:0; width:100%; height:100%;
-        background-color: rgba(0,0,0,0.5);
-        z-index:1000;
-    }
-    .modal-card {
-        position: fixed;
-        top:50%; left:50%;
-        transform: translate(-50%, -50%);
-        background-color:white;
-        padding:20px;
-        border-radius:10px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-        z-index:1001;
-        width: 50%;
-    }
-    </style>
-    """
-    st.markdown(modal_css, unsafe_allow_html=True)
-    st.markdown("<div class='modal-background'></div>", unsafe_allow_html=True)
+# Use the summary row itself as expander header
+with st.expander(label="", expanded=False):
+    # Add CSS to style expander header to look like summary row
+    st.markdown(
+        f"""
+        <style>
+        /* Expander header styling */
+        .streamlit-expanderHeader {{
+            font-size: 22px;
+            font-weight: bold;
+            text-align: center;
+            color: {header_color};
+            cursor: pointer;
+        }}
+        </style>
+        """, unsafe_allow_html=True
+    )
+    st.markdown(f"<div class='streamlit-expanderHeader'>{summary_label}</div>", unsafe_allow_html=True)
 
-    # Modal content inside container
-    with st.container():
-        st.markdown("<div class='modal-card'>", unsafe_allow_html=True)
-        st.markdown("<h3 style='text-align:center'>User Breakdown</h3>", unsafe_allow_html=True)
-
-        # Header row
-        c1, c2, c3 = st.columns([2,1,1])
-        c1.markdown("<b>User</b>", unsafe_allow_html=True)
-        c2.markdown("<b>Units</b>", unsafe_allow_html=True)
-        c3.markdown("<b>Amount</b>", unsafe_allow_html=True)
-
-        # User rows
-        for name, units, user_amount in user_summary:
-            color = "green" if user_amount >=0 else "red"
-            uc1, uc2, uc3 = st.columns([2,1,1])
-            uc1.markdown(f"<div style='text-align:center'><small>{name}</small></div>", unsafe_allow_html=True)
-            uc2.markdown(f"<div style='text-align:center'><small>{units}</small></div>", unsafe_allow_html=True)
-            uc3.markdown(f"<div style='text-align:center'><small style='color:{color}'>${user_amount:.2f}</small></div>", unsafe_allow_html=True)
-
-        # Close button
-        if st.button("Close Modal", key="close_modal"):
-            st.session_state.show_modal = False
-
-        st.markdown("</div>", unsafe_allow_html=True)
+    # --- User breakdown lines ---
+    st.write("")  # spacing
+    for name, units, user_amount in user_summary:
+        color = "green" if user_amount >=0 else "red"
+        st.markdown(f"<div style='color:{color}; text-align:center'>{name} ({units} units): ${user_amount:.2f}</div>", unsafe_allow_html=True)
 
 
 # -----------------------------
