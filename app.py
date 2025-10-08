@@ -33,16 +33,8 @@ st.markdown("""
 
 st.markdown("""
 <style>
-/* Collapse all st-emotion-cache elements */
-[class^="st-emotion-cache-"] {
-    height: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: hidden !important;
-}
-
-/* Also collapse any nested children just in case */
-[class^="st-emotion-cache-"] * {
+/* Collapse only top-level st-emotion-cache elements that are empty or contain just style blocks */
+[class^="st-emotion-cache-"] > :empty {
     height: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
