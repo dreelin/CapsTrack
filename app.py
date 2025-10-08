@@ -405,29 +405,23 @@ for i, row in bets_display.sort_values("date", ascending=False).iterrows():
         settle_col = cols[7]
         btn_cols = settle_col.columns([1,1,1])
         
-        button_styles = {
-            "W": "background-color:#16a34a; color:white; border:none; border-radius:6px; width:100%; height:28px; font-weight:bold; cursor:pointer;",
-            "L": "background-color:#dc2626; color:white; border:none; border-radius:6px; width:100%; height:28px; font-weight:bold; cursor:pointer;",
-            "V": "background-color:#6b7280; color:white; border:none; border-radius:6px; width:100%; height:28px; font-weight:bold; cursor:pointer;"
-        }
+    if btn_cols[0].button("🟢 W", key=f"win_{i}"):  # green circle emoji
+        bets.at[i, "result"] = "win"
+        bets.at[i, "profit"] = round(bets.at[i, "amount"] * (100 / abs(bets.at[i, "odds"])) if bets.at[i, "odds"] < 0 else bets.at[i, "amount"] * (bets.at[i, "odds"] / 100), 2)
+        save_data(bets)
+        st.rerun()
 
-        if btn_cols[0].button("W", key=f"win_{i}"):
-            bets.at[i, "result"] = "win"
-            bets.at[i, "profit"] = round(bets.at[i, "amount"] * (100 / abs(bets.at[i, "odds"])) if bets.at[i, "odds"] < 0 else bets.at[i, "amount"] * (bets.at[i, "odds"] / 100), 2)
-            save_data(bets)
-            st.rerun()
+    if btn_cols[1].button("🔴 L", key=f"loss_{i}"):
+        bets.at[i, "result"] = "loss"
+        bets.at[i, "profit"] = -bets.at[i, "amount"]
+        save_data(bets)
+        st.rerun()
 
-        if btn_cols[1].button("L", key=f"loss_{i}"):
-            bets.at[i, "result"] = "loss"
-            bets.at[i, "profit"] = -bets.at[i, "amount"]
-            save_data(bets)
-            st.rerun()
-
-        if btn_cols[2].button("V", key=f"void_{i}"):
-            bets.at[i, "result"] = "void"
-            bets.at[i, "profit"] = 0
-            save_data(bets)
-            st.rerun()
+    if btn_cols[2].button("⚪ V", key=f"void_{i}"):
+        bets.at[i, "result"] = "void"
+        bets.at[i, "profit"] = 0
+        save_data(bets)
+        st.rerun()
 
 st.markdown("<div id='user-breakdown'></div>", unsafe_allow_html=True)
 st.markdown("<hr>", unsafe_allow_html=True)
