@@ -273,79 +273,6 @@ with st.expander("➕ Add New Bet", expanded=True):
 
 
 
-# -----------------------------
-# Summary Stats
-# -----------------------------
-wins = len(bets[bets["result"] == "win"])
-losses = len(bets[bets["result"] == "loss"])
-
-# Calculate profit/loss
-def calc_profit(row):
-    if row["result"] == "win":
-        if row["odds"] > 0:
-            return row["amount"] * (row["odds"] / 100)
-        else:
-            return row["amount"] * (100 / abs(row["odds"]))
-    elif row["result"] == "loss":
-        return -row["amount"]
-    return 0
-
-bets["profit"] = bets.apply(calc_profit, axis=1)
-total_profit = bets["profit"].sum()
-
-user_summary = []
-for user, units in USERS.items():
-    user_amount = total_profit / 10 * units
-    user_summary.append((user, units, user_amount))
-
-import streamlit as st
-
-# --- Example summary values ---
-wins = len(bets[bets["result"] == "win"])
-losses = len(bets[bets["result"] == "loss"])
-total_profit = bets["profit"].sum()
-
-# USERS dict: username -> units
-USERS = {
-    "Atodd": 1,
-    "Dree": 2,
-    "Casey": 3,
-    "Kyle": 1,
-    "Nick": 1,
-    "Ross": 1,
-    "Saucy": 1
-}
-
-# --- Compute user summary ---
-user_summary = []
-for user, units in USERS.items():
-    user_amount = total_profit / 10 * units
-    user_summary.append((user, units, user_amount))
-
-import streamlit as st
-
-# -------------------
-# Example summary data
-# -------------------
-wins = len(bets[bets["result"] == "win"])
-losses = len(bets[bets["result"] == "loss"])
-total_profit = bets["profit"].sum()
-USERS = {"Alice": 3, "Bob": 2, "Charlie": 5}
-
-# Compute user summary
-user_summary = []
-for user, units in USERS.items():
-    user_amount = total_profit / 10 * units
-    user_summary.append((user, units, user_amount))
-
-# -------------------
-# Session state for toggling details
-# -------------------
-if "show_details" not in st.session_state:
-    st.session_state.show_details = False
-
-import streamlit as st
-
 # -------------------
 # summary data
 # -------------------
@@ -360,11 +287,6 @@ for user, units in USERS.items():
     user_amount = total_profit / 10 * units
     user_summary.append((user, units, user_amount))
 
-# -------------------
-# Session state for toggling details
-# -------------------
-if "show_details" not in st.session_state:
-    st.session_state.show_details = False
 
 # -------------------
 # Summary header row (H2, colored text)
