@@ -360,4 +360,4 @@ for name, units, user_amount in user_summary:
         f"<div style='text-align:center'><span>{name} ({units} units): </span>"
         f"<span style='color:{color}'>${user_amount:.2f}</span></div>",
         unsafe_allow_html=True
-    )
+    ) 
