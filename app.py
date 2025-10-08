@@ -33,9 +33,13 @@ COOKIE_SECRET = st.secrets["cookie_secret"]
 TEAM_ID = 23  # Washington Capitals ESPN ID
 EASTERN = pytz.timezone("US/Eastern")
 USERS = {
-    "Alex": 10,   # units
-    "Ben": 8,
-    "Chris": 12,
+    "Atodd": 1,
+    "Dree": 2,
+    "Casey": 3,
+    "Kyle": 1,
+    "Nick": 1,
+    "Ross": 1,
+    "Saucy": 1
 }
 
 DATA_FILE = "bets.csv"
@@ -56,7 +60,7 @@ def load_data():
         df = pd.read_csv(DATA_FILE)
     except FileNotFoundError:
         df = pd.DataFrame(columns=["date", "game", "home_team", "away_team",
-                                   "legs", "odds", "amount", "result"])
+                                   "legs", "odds", "amount", "result", "profit"])
     return df
 
 def save_data(df):
@@ -217,6 +221,8 @@ with st.expander("➕ Add New Bet", expanded=True):
         with col_result:
             result = st.selectbox("Result", ["pending", "win", "loss"])
 
+
+
         # ---------------------
         # Legs
         # ---------------------
@@ -257,6 +263,12 @@ with st.expander("➕ Add New Bet", expanded=True):
                 # Process legs
                 legs_list = [l.strip() for l in legs_text.split("\n") if l.strip()]
 
+                profit = 0
+                if result == "win":
+                    profit = amount * (abs(odds) / 100) if odds < 0 else amount * (odds / 100)
+                elif result == "loss":
+                    profit = -amount
+
                 # Save
                 new_row = {
                     "date": game_date,
@@ -265,7 +277,9 @@ with st.expander("➕ Add New Bet", expanded=True):
                     "legs": legs_list,
                     "odds": odds,
                     "amount": amount,
-                    "result": result
+                    "result": result,
+                    "profit": profit
+
                 }
                 bets = pd.concat([bets, pd.DataFrame([new_row])], ignore_index=True)
                 save_data(bets)
@@ -279,7 +293,7 @@ with st.expander("➕ Add New Bet", expanded=True):
 wins = len(bets[bets["result"] == "win"])
 losses = len(bets[bets["result"] == "loss"])
 total_profit = bets["profit"].sum()
-USERS = {"Alice": 3, "Bob": 2, "Charlie": 5}
+
 
 # Compute user summary
 user_summary = []
