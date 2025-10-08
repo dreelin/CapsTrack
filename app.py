@@ -334,8 +334,11 @@ if not bets.empty:
     # Compute cumulative profit
     daily_profit["cumulative_profit"] = daily_profit["profit"].cumsum()
 
-    # Plot: use date only as x-axis
-    st.line_chart(daily_profit.set_index("date")["cumulative_profit"])
+    # Format date as mm/dd for x-axis
+    daily_profit["date_str"] = daily_profit["date"].apply(lambda d: d.strftime("%m/%d"))
+
+    # Plot
+    st.line_chart(daily_profit.set_index("date_str")["cumulative_profit"])
 else:
     st.info("No bets yet — add some to see the bankroll chart!")
 
