@@ -330,20 +330,20 @@ with col3:
     st.markdown(f"""
     <style>
     .amount-block button {{
-        background:transparent !important;
-        border:none !important;
+        all: unset !important; /* strip all default styles */
         color:{header_color} !important;
         font-size:2rem !important;
         font-weight:700 !important;
+        line-height:1 !important;
+        cursor:pointer !important;
+        display:inline-block !important;
         padding:0 !important;
         margin:0 !important;
-        line-height:1 !important;
-        box-shadow:none !important;
-        cursor:pointer !important;
     }}
-    .amount-block button:hover {{
-        text-decoration:underline;
-    }}
+    .amount-block button:focus {{outline:none !important;}}
+    .amount-block button:hover {{text-decoration:underline;}}
+    /* Remove any container styling Streamlit might add */
+    .amount-block button div, .amount-block button span {{all: unset !important;}}
     </style>
     <div style='font-size:10px; margin-top:2px; color:#888;'>(click amount for details)</div>
     """, unsafe_allow_html=True)
