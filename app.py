@@ -12,7 +12,7 @@ st.title("🏒 Caps Bet Tracker")
 # Configuration
 # -----------------------------
 PASSWORD = st.secrets["password"]
-TEAM_ID = 3691  # Washington Capitals Sofascore ID
+TEAM_ID = 23  # Washington Capitals ESPN ID
 USERS = {
     "Alex": 10,   # units
     "Ben": 8,
@@ -36,56 +36,54 @@ def save_data(df):
 
 bets = load_data()
 
-def fetch_games(url):
-    headers = {
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/117.0.0.0 Safari/537.36"
-        ),
-        "Accept": "application/json, text/javascript, */*; q=0.01",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Referer": "https://www.sofascore.com/",
-        "X-Requested-With": "XMLHttpRequest"
-    }
+
+
+# -----------------------------
+# Scoreboard
+# -----------------------------
+
+
+def fetch_espn_schedule(team_id):
+    url = f"https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/teams/{team_id}/schedule"
     try:
-        resp = requests.get(url, headers=headers, timeout=10)
-        if resp.status_code == 200:
-            return resp.json().get("events", [])
-        else:
-            st.warning(f"SofaScore API returned {resp.status_code}")
-            return []
+        resp = requests.get(url, timeout=10)
+        resp.raise_for_status()
+        return resp.json().get("events", [])
     except requests.RequestException as e:
-        st.error(f"Error fetching SofaScore: {e}")
+        st.error(f"Failed to fetch ESPN schedule: {e}")
         return []
 
-def format_game_tile(game, is_past=True):
-    start_dt = datetime.fromtimestamp(game["startTimestamp"])
-    away_team = game["awayTeam"]["name"]
-    home_team = game["homeTeam"]["name"]
+def build_game_card(game):
+    # Determine if past or future
+    status = game["status"]["type"]["name"].lower()
+    start_dt = datetime.fromisoformat(game["date"].replace("Z", "+00:00"))
     
-    away_score = game.get("awayScore", {}).get("current", "")
-    home_score = game.get("homeScore", {}).get("current", "")
+    # Teams and scores
+    home_team = game["competitions"][0]["competitors"][0]["team"]["displayName"]
+    away_team = game["competitions"][0]["competitors"][1]["team"]["displayName"]
+    home_score = game["competitions"][0]["competitors"][0].get("score", "")
+    away_score = game["competitions"][0]["competitors"][1].get("score", "")
 
-    # Determine result & background color
-    result_text = ""
-    bg_color = "#ffffff"  # default white
+    # Background
+    if status == "completed":
+        capitals_won = (
+            (home_team == "Washington Capitals" and int(home_score) > int(away_score)) or
+            (away_team == "Washington Capitals" and int(away_score) > int(home_score))
+        )
+        bg_color = "#d4f4dd" if capitals_won else "#f8d3d3"
+        result_text = "W" if capitals_won else "L"
+    else:
+        bg_color = "#ffffff"
+        result_text = ""
 
-    if is_past:
-        winner_code = game.get("winnerCode")
-        status_code = game.get("status", {}).get("code", 100)
-        ot_text = " OT" if status_code != 100 else ""
+    # Gamecast link
+    gamecast_url = next(
+        (link["href"] for link in game["links"] if link["rel"][0] == "gamecast"), "#"
+    )
 
-        # Capitals W/L
-        if (winner_code == 1 and home_team == "Capitals") or (winner_code == 2 and away_team == "Capitals"):
-            result_text = f"W{ot_text}"
-            bg_color = "#d4f4dd"  # light green
-        else:
-            result_text = f"L{ot_text}"
-            bg_color = "#f8d3d3"  # light red
-
-    # Build HTML card
+    # HTML card
     html = f"""
+    <a href="{gamecast_url}" target="_blank" style="text-decoration:none;color:inherit;">
     <div style="
         border-radius:10px;
         border:1px solid #ccc;
@@ -103,19 +101,28 @@ def format_game_tile(game, is_past=True):
             <span>{home_team}</span><span>{home_score}</span>
         </div>
     </div>
+    </a>
     """
     return html
 
-# Fetch recent and upcoming games
-recent_games = fetch_games(f"https://www.sofascore.com/api/v1/team/{TEAM_ID}/events/last/0")[:2]
-upcoming_games = fetch_games(f"https://www.sofascore.com/api/v1/team/{TEAM_ID}/events/next/0")[:3]
+# Fetch schedule
+games = fetch_espn_schedule(TEAM_ID)
+
+# Split past/future
+past_games = [g for g in games if g["status"]["type"]["name"].lower() == "completed"]
+future_games = [g for g in games if g["status"]["type"]["name"].lower() != "completed"]
+
+# Decide which to show
+cards = past_games[-2:] + future_games[:3]  # last 2 past + first 3 future
+# Ensure 5 cards total
+if len(cards) < 5:
+    needed = 5 - len(cards)
+    cards += future_games[3:3+needed]
 
 st.subheader("🏒 Caps Games")
-cols = st.columns(5)  # 2 recent + 3 upcoming = 5 cards
-
-for i, game in enumerate(recent_games + upcoming_games):
-    is_past = i < len(recent_games)
-    html_card = format_game_tile(game, is_past)
+cols = st.columns(5)
+for i, game in enumerate(cards[:5]):
+    html_card = build_game_card(game)
     cols[i].markdown(html_card, unsafe_allow_html=True)
 
 
