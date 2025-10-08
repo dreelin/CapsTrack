@@ -414,6 +414,23 @@ for i, row in bets_display.sort_values("date", ascending=False).iterrows():
             save_data(bets)
             st.rerun()
         
+        win_html = f"""
+        <form action="?win={i}" method="post">
+            <button style="
+                background-color:#16a34a;
+                border:none;
+                color:white;
+                padding:4px 8px;
+                border-radius:6px;
+                cursor:pointer;
+            ">
+                <img src="https://a.espncdn.com/guid/cbe677ee-361e-91b4-5cae-6c4c30044743/logos/secondary_logo_on_primary_color.png"
+                     style="height:20px; vertical-align:middle"/>
+            </button>
+        </form>
+        """
+        btn_cols[0].markdown(win_html, unsafe_allow_html=True)
+
         # Loss button
         if btn_cols[1].button("L", key=f"loss_{i}"):
             bets.at[i, "result"] = "loss"
@@ -427,22 +444,7 @@ for i, row in bets_display.sort_values("date", ascending=False).iterrows():
             bets.at[i, "profit"] = 0
             save_data(bets)
             st.rerun()
-win_html = f"""
-<form action="?win={i}" method="post">
-    <button style="
-        background-color:#16a34a;
-        border:none;
-        color:white;
-        padding:4px 8px;
-        border-radius:6px;
-        cursor:pointer;
-    ">
-        <img src="https://a.espncdn.com/guid/cbe677ee-361e-91b4-5cae-6c4c30044743/logos/secondary_logo_on_primary_color.png"
-             style="height:20px; vertical-align:middle"/>
-    </button>
-</form>
-"""
-btn_cols[0].markdown(win_html, unsafe_allow_html=True)
+
 st.markdown("<div id='user-breakdown'></div>", unsafe_allow_html=True)
 st.markdown("<hr>", unsafe_allow_html=True)
 
