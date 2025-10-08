@@ -248,7 +248,7 @@ col3.markdown(f"<h2 style='color:{header_color}; text-align:center;'>"
 # -----------------------------
 # Bankroll Chart
 # -----------------------------
-st.subheader("Profit Chart")
+st.subheader("CUMulative Profit")
 
 if not bets.empty:
     # Drop bets without a date
@@ -269,7 +269,7 @@ if not bets.empty:
     # Plot
     st.line_chart(daily_profit.set_index("date_str")["cumulative_profit"])
 else:
-    st.info("No bets yet — add some to see the bankroll chart!")
+    st.info("Still edging...")
 
 
 # -----------------------------
@@ -327,7 +327,7 @@ with st.expander("Add Bet", expanded=False):
         with col_amount:
             amount = st.number_input("Amount ($)", value=69.0)
         with col_result:
-            result = st.selectbox("Result", ["pending", "win", "loss"])
+            result = st.selectbox("Result", ["edging", "win", "loss"])
 
 
 
@@ -391,7 +391,7 @@ with st.expander("Add Bet", expanded=False):
 # -----------------------------
 # Bet History
 # -----------------------------
-st.subheader("Bet History")
+st.subheader("69 Logs")
 
 def parse_legs(x):
     if isinstance(x, list):
@@ -443,7 +443,7 @@ for i, row in bets_display.sort_values("date", ascending=False).iterrows():
     cols[6].markdown(f"<span style='color:{color}'>{row["profit_str"]}</span>", unsafe_allow_html=True)
     
     # Settle Bet buttons
-    if row["result"] == "pending" and st.session_state.auth:
+    if row["result"] == "edging" and st.session_state.auth:
         settle_col = cols[7]
         btn_cols = settle_col.columns([1,1,1])
         
