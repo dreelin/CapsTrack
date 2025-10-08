@@ -347,7 +347,9 @@ else:
 # Bet History
 # -----------------------------
 st.subheader("📜 Bet History")
-st.dataframe(bets.sort_values("date", ascending=False), use_container_width=True)
+display_bets = bets.copy()
+display_bets["legs"] = display_bets["legs"].apply(lambda x: ", ".join(x) if isinstance(x, list) else x)
+st.dataframe(display_bets.sort_values("date", ascending=False), use_container_width=True)
 
 st.markdown("<div id='user-breakdown'></div>", unsafe_allow_html=True)
 st.markdown("<hr>", unsafe_allow_html=True)
