@@ -7,7 +7,6 @@ import time
 import pytz
 
 st.set_page_config(page_title="Caps Bet Tracker", layout="wide")
-st.title("🏒 Caps Bet Tracker")
 
 # -----------------------------
 # Configuration
@@ -104,6 +103,22 @@ def build_game_card(game):
                 gamecast_url = link["href"]
                 break
 
+        # Capitals logo fixed
+        caps_logo = "https://a.espncdn.com/guid/cbe677ee-361e-91b4-5cae-6c4c30044743/logos/secondary_logo_on_primary_color.png"
+
+        # Other team logo (away or home)
+        def get_team_logo(team):
+            if team["team"]["displayName"] == "Washington Capitals":
+                return caps_logo
+            logos = team["team"].get("logos", [])
+            if logos:
+                return logos[0].get("href", "")
+            return ""  # fallback
+
+        home_logo = get_team_logo(home)
+        away_logo = get_team_logo(away)
+
+        # HTML with logos on left side
         html = f"""
         <a href="{gamecast_url}" target="_blank" style="text-decoration:none;color:inherit;">
         <div style="
@@ -117,11 +132,19 @@ def build_game_card(game):
             box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
         ">
             <strong>{dt_str} {result_text}</strong><br>
-            <div style="display:flex; justify-content:space-between;">
-                <span>{away_team}</span><span>{away_score}</span>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style='display:flex; align-items:center;'>
+                    <img src='{away_logo}' alt='' width='24' height='24' style='margin-right:5px;'/>
+                    <span>{away_team}</span>
+                </div>
+                <span>{away_score}</span>
             </div>
-            <div style="display:flex; justify-content:space-between;">
-                <span>{home_team}</span><span>{home_score}</span>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style='display:flex; align-items:center;'>
+                    <img src='{home_logo}' alt='' width='24' height='24' style='margin-right:5px;'/>
+                    <span>{home_team}</span>
+                </div>
+                <span>{home_score}</span>
             </div>
         </div>
         </a>
@@ -144,7 +167,6 @@ if len(cards) < 5:
     needed = 5 - len(cards)
     cards += future_games[3:3+needed]
 
-st.subheader("🏒 Caps Games")
 cols = st.columns(5)
 for i, game in enumerate(cards[:5]):
     html_card = build_game_card(game)
@@ -194,8 +216,6 @@ if st.session_state["auth"]:
 # -----------------------------
 # Summary Stats
 # -----------------------------
-st.subheader("📊 Summary")
-
 total_bets = len(bets)
 wins = len(bets[bets["result"] == "win"])
 losses = len(bets[bets["result"] == "loss"])
@@ -213,6 +233,41 @@ def calc_profit(row):
 
 bets["profit"] = bets.apply(calc_profit, axis=1)
 total_profit = bets["profit"].sum()
+
+user_summary = []
+for user, units in USERS.items():
+    user_amount = total_profit / 10 * units
+    user_summary.append((user, units, user_amount))
+
+# --- HEADER ROW ---
+header_color = "green" if total_profit >= 0 else "red"
+col1, col2, col3 = st.columns([1,1,1])
+col1.markdown(f"<h2 style='color:{header_color};text-align:center'>{total_bets}</h2>", unsafe_allow_html=True)
+col2.markdown(f"<h2 style='color:{header_color};text-align:center'>{wins}-{losses}</h2>", unsafe_allow_html=True)
+col3.markdown(f"<h2 style='color:{header_color};text-align:center'>${total_profit:.2f}</h2>", unsafe_allow_html=True)
+
+# --- EXPANDER FOR USER BREAKDOWN ---
+with st.expander("User Breakdown"):
+    st.write("")  # spacing
+    c1, c2, c3 = st.columns([1,1,1])
+    c1.markdown("<b>User</b>", unsafe_allow_html=True)
+    c2.markdown("<b>Units</b>", unsafe_allow_html=True)
+    c3.markdown("<b>Amount</b>", unsafe_allow_html=True)
+
+    for name, units, user_amount in user_summary:
+        color = "green" if user_amount >=0 else "red"
+        uc1, uc2, uc3 = st.columns([1,1,1])
+        uc1.markdown(f"<small>{name}</small>", unsafe_allow_html=True)
+        uc2.markdown(f"<small>{units}</small>", unsafe_allow_html=True)
+        uc3.markdown(f"<small style='color:{color}'>${user_amount:.2f}</small>", unsafe_allow_html=True)
+
+
+
+st.subheader("📊 Summary")
+
+
+
+
 
 summary_df = pd.DataFrame({
     "Metric": ["Total Bets", "Record (W-L)", "Total Profit/Loss ($)"],
@@ -247,19 +302,6 @@ if not bets.empty:
 else:
     st.info("No bets yet — add some to see the bankroll chart!")
 
-# -----------------------------
-# Upcoming and Recent Games (Stub)
-# -----------------------------
-st.subheader("🗓️ Caps Schedule")
-
-col1, col2 = st.columns(2)
-with col1:
-    st.markdown("### Upcoming Games")
-    st.write("(Coming soon — Sofascore API integration)")
-
-with col2:
-    st.markdown("### Recent Games")
-    st.write("(Coming soon — Sofascore API integration)")
 
 # -----------------------------
 # Bet History
