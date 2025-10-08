@@ -258,22 +258,41 @@ for user, units in USERS.items():
     user_amount = total_profit / 10 * units
     user_summary.append((user, units, user_amount))
 
-# --- Session state for modal ---
+import streamlit as st
+
+# -------------------
+# Example summary data
+# -------------------
+wins = 5
+losses = 3
+total_profit = 120
+USERS = {"Alice": 3, "Bob": 2, "Charlie": 5}
+
+# Compute user summary
+user_summary = []
+for user, units in USERS.items():
+    user_amount = total_profit / 10 * units
+    user_summary.append((user, units, user_amount))
+
+# -------------------
+# Session state for modal
+# -------------------
 if "show_modal" not in st.session_state:
     st.session_state.show_modal = False
 
-# --- Summary as clickable row ---
+# -------------------
+# Summary row as a "clickable button"
+# -------------------
 header_color = "green" if total_profit >= 0 else "red"
-if st.button("## Click to see summary details", key="summary_btn"):
+if st.button(
+    f"{wins+losses} | {wins}-{losses} | ${total_profit:.2f}",
+    key="summary_row",
+):
     st.session_state.show_modal = True
 
-# Show summary record
-col1, col2, col3 = st.columns([1,1,1])
-col1.markdown(f"<h2 style='color:{header_color};text-align:center'>Skeet Summary</h2>", unsafe_allow_html=True)
-col2.markdown(f"<h2 style='color:{header_color};text-align:center'>{wins}-{losses}</h2>", unsafe_allow_html=True)
-col3.markdown(f"<h2 style='color:{header_color};text-align:center'>${total_profit:.2f}</h2>", unsafe_allow_html=True)
-
-# --- Modal ---
+# -------------------
+# Modal overlay
+# -------------------
 if st.session_state.show_modal:
     modal_css = """
     <style>
@@ -297,30 +316,31 @@ if st.session_state.show_modal:
     </style>
     """
     st.markdown(modal_css, unsafe_allow_html=True)
-
     st.markdown("<div class='modal-background'></div>", unsafe_allow_html=True)
+
+    # Modal content inside container
     with st.container():
         st.markdown("<div class='modal-card'>", unsafe_allow_html=True)
         st.markdown("<h3 style='text-align:center'>User Breakdown</h3>", unsafe_allow_html=True)
-        
+
         # Header row
         c1, c2, c3 = st.columns([2,1,1])
         c1.markdown("<b>User</b>", unsafe_allow_html=True)
         c2.markdown("<b>Units</b>", unsafe_allow_html=True)
         c3.markdown("<b>Amount</b>", unsafe_allow_html=True)
-        
+
         # User rows
         for name, units, user_amount in user_summary:
-            color = "green" if user_amount >= 0 else "red"
+            color = "green" if user_amount >=0 else "red"
             uc1, uc2, uc3 = st.columns([2,1,1])
             uc1.markdown(f"<div style='text-align:center'><small>{name}</small></div>", unsafe_allow_html=True)
             uc2.markdown(f"<div style='text-align:center'><small>{units}</small></div>", unsafe_allow_html=True)
             uc3.markdown(f"<div style='text-align:center'><small style='color:{color}'>${user_amount:.2f}</small></div>", unsafe_allow_html=True)
 
         # Close button
-        if st.button("Close", key="close_modal"):
+        if st.button("Close Modal", key="close_modal"):
             st.session_state.show_modal = False
-        
+
         st.markdown("</div>", unsafe_allow_html=True)
 
 
