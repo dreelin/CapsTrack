@@ -37,13 +37,14 @@ USERS = {
 DATA_FILE = "bets.csv"
 
 # -----------------------------
-# Load data
+# Load/Save Data
 # -----------------------------
 def load_data():
     try:
         df = pd.read_csv(DATA_FILE)
     except FileNotFoundError:
-        df = pd.DataFrame(columns=["date", "game", "legs", "odds", "amount", "result"])
+        df = pd.DataFrame(columns=["date", "game", "home_team", "away_team",
+                                   "legs", "odds", "amount", "result"])
     return df
 
 def save_data(df):
@@ -51,131 +52,44 @@ def save_data(df):
 
 bets = load_data()
 
-
-
 # -----------------------------
-# Scoreboard
+# ESPN Schedule
 # -----------------------------
-
 def fetch_espn_schedule(team_id):
     url = f"https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/teams/{team_id}/schedule"
     try:
         resp = requests.get(url, timeout=10)
         resp.raise_for_status()
-        return resp.json().get("events", [])
-    except requests.RequestException as e:
+        events = resp.json().get("events", [])
+        games = []
+        for g in events:
+            comp = g.get("competitions", [{}])[0]
+            home = comp.get("competitors", [{}])[0]
+            away = comp.get("competitors", [{}])[1]
+            dt = datetime.fromisoformat(comp.get("date").replace("Z", "+00:00")).astimezone(EASTERN)
+            games.append({
+                "id": g.get("id"),
+                "home_team": home.get("team", {}).get("displayName", ""),
+                "away_team": away.get("team", {}).get("displayName", ""),
+                "home_score": home.get("score", ""),
+                "away_score": away.get("score", ""),
+                "status_type": comp.get("status", {}).get("type", {}).get("name", "").lower(),
+                "date_obj": dt,
+                "date_str": dt.strftime("%-m/%-d %-I:%M %p ET"),
+                "gamecast_url": next((l["href"] for l in g.get("links", [])
+                                      if l.get("text") == "Gamecast" and "desktop" in l.get("rel", [])), "#"),
+            })
+        return games
+    except Exception as e:
         st.error(f"Failed to fetch ESPN schedule: {e}")
         return []
 
-def get_status_name(game):
-    """Return status type name lowercase from competitions[0], safely."""
-    try:
-        return game["competitions"][0]["status"]["type"]["name"].lower()
-    except (KeyError, IndexError):
-        return ""
-
-def build_game_card(game):
-    try:
-        comp = game["competitions"][0]
-        home = comp["competitors"][0]
-        away = comp["competitors"][1]
-
-        home_team = home["team"]["displayName"]
-        away_team = away["team"]["displayName"]
-
-        home_score = home.get("score") or ""
-        away_score = away.get("score") or ""
-
-        # Status
-        status_type = comp["status"]["type"]["name"].lower()
-        status_id = comp["status"]["type"].get("id", 0)
-        is_past = status_type == "completed"
-
-        # Background and result
-        if is_past:
-            capitals_won = (
-                (home_team == "Washington Capitals" and int(home_score) > int(away_score)) or
-                (away_team == "Washington Capitals" and int(away_score) > int(home_score))
-            )
-            result_text = "W" if capitals_won else "L"
-            if status_id != 1:  # id != 1 → OT
-                result_text += " OT"
-            bg_color = "#d4f4dd" if capitals_won else "#f8d3d3"
-        else:
-            result_text = ""
-            bg_color = "#ffffff"
-
-        # Convert date to ET and format
-        dt_utc = datetime.fromisoformat(comp.get("date", game.get("date")).replace("Z", "+00:00"))
-        dt_et = dt_utc.astimezone(EASTERN)
-        dt_str = dt_et.strftime("%-m/%-d %-I:%M %p ET")
-
-        # Gamecast link
-        gamecast_url = "#"
-        for link in game.get("links", []):
-            if link.get("text") == "Gamecast" and "desktop" in link.get("rel", []):
-                gamecast_url = link["href"]
-                break
-
-        # Capitals logo fixed
-        caps_logo = "https://a.espncdn.com/guid/cbe677ee-361e-91b4-5cae-6c4c30044743/logos/secondary_logo_on_primary_color.png"
-
-        # Other team logo (away or home)
-        def get_team_logo(team):
-            if team["team"]["displayName"] == "Washington Capitals":
-                return caps_logo
-            logos = team["team"].get("logos", [])
-            if logos:
-                return logos[0].get("href", "")
-            return ""  # fallback
-
-        home_logo = get_team_logo(home)
-        away_logo = get_team_logo(away)
-
-        # HTML with logos on left side
-        html = f"""
-        <a href="{gamecast_url}" target="_blank" style="text-decoration:none;color:inherit;">
-        <div style="
-            border-radius:10px;
-            border:1px solid #ccc;
-            padding:10px;
-            margin:5px;
-            width:250px;
-            background-color:{bg_color};
-            color:black;
-            box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
-        ">
-            <strong>{dt_str} {result_text}</strong><br>
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div style='display:flex; align-items:center;'>
-                    <img src='{away_logo}' alt='' width='24' height='24' style='margin-right:5px;'/>
-                    <span>{away_team}</span>
-                </div>
-                <span>{away_score}</span>
-            </div>
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div style='display:flex; align-items:center;'>
-                    <img src='{home_logo}' alt='' width='24' height='24' style='margin-right:5px;'/>
-                    <span>{home_team}</span>
-                </div>
-                <span>{home_score}</span>
-            </div>
-        </div>
-        </a>
-        """
-        return html
-    except Exception as e:
-        st.warning(f"Error building game card: {e}")
-        return "<div>Invalid game data</div>"
-
-# Fetch schedule
+# -----------------------------
+# Scoreboard
+# -----------------------------
 games = fetch_espn_schedule(TEAM_ID)
-
-# Split past/future
-past_games = [g for g in games if get_status_name(g) == "completed"]
-future_games = [g for g in games if get_status_name(g) != "completed"]
-
-# Determine 5 cards
+past_games = [g for g in games if g["status_type"] == "completed"]
+future_games = [g for g in games if g["status_type"] != "completed"]
 cards = past_games[-2:] + future_games[:3]
 if len(cards) < 5:
     needed = 5 - len(cards)
@@ -183,119 +97,108 @@ if len(cards) < 5:
 
 cols = st.columns(5)
 for i, game in enumerate(cards[:5]):
-    html_card = build_game_card(game)
-    cols[i].markdown(html_card, unsafe_allow_html=True)
-
-
-
-# -----------------------------
-# Password Gate for Editing
-# -----------------------------
-if "auth" not in st.session_state:
-    st.session_state["auth"] = False
-
-if not st.session_state["auth"]:
-    pw = st.text_input("Enter password to enable editing", type="password")
-    if pw == PASSWORD:
-        st.session_state["auth"] = True
-        st.experimental_rerun()
-
+    g = game
+    # Background color for past games
+    if g["status_type"] == "completed":
+        caps_won = ((g["home_team"] == "Washington Capitals" and int(g["home_score"]) > int(g["away_score"])) or
+                    (g["away_team"] == "Washington Capitals" and int(g["away_score"]) > int(g["home_score"])))
+        bg_color = "#d4f4dd" if caps_won else "#f8d3d3"
+        result_text = "W" if caps_won else "L"
+    else:
+        bg_color = "#ffffff"
+        result_text = ""
+    html = f"""
+    <a href="{g['gamecast_url']}" target="_blank" style="text-decoration:none;color:inherit;">
+    <div style="
+        border-radius:10px;
+        border:1px solid #ccc;
+        padding:10px;
+        margin:5px;
+        width:250px;
+        background-color:{bg_color};
+        color:black;
+        box-shadow:2px 2px 5px rgba(0,0,0,0.1);
+    ">
+        <strong>{g['date_str']} {result_text}</strong><br>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span>{g['away_team']}</span>
+            <span>{g['away_score']}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span>{g['home_team']}</span>
+            <span>{g['home_score']}</span>
+        </div>
+    </div>
+    </a>
+    """
+    cols[i].markdown(html, unsafe_allow_html=True)
 
 # -----------------------------
 # Add Bet Form
 # -----------------------------
-def add_bet_form(bets, scoreboard_games, password, users):
-    """
-    scoreboard_games: list of dicts like [{'label': '10/8 vs Rangers', 'data': {...}}, ...]
-    bets: pd.DataFrame
-    password: str
-    users: dict of username->units
-    """
-    with st.expander("➕ Add New Bet", expanded=True):
-        with st.form("new_bet"):
-            # -------------------
-            # Game selection
-            # -------------------
-            game_options = [g['label'] for g in scoreboard_games] + ["Manual"]
-            
-            # Default to first upcoming game
-            default_idx = 0
-            for i, g in enumerate(scoreboard_games):
-                status = g['data'].get("status_type", "upcoming")
-                if status != "completed":
-                    default_idx = i
-                    break
-            
-            selected_game_label = st.selectbox("Select Game", options=game_options, index=default_idx)
-            
-            # Show manual inputs only if selected
-            if selected_game_label == "Manual":
-                date = st.date_input("Date", datetime.today())
-                home_team = st.text_input("Home Team")
-                away_team = st.text_input("Away Team")
+if "legs_inputs" not in st.session_state:
+    st.session_state.legs_inputs = ["Capitals Moneyline", "A. Ovechkin 1+ Goal"]
+
+with st.expander("➕ Add New Bet", expanded=True):
+    with st.form("new_bet"):
+        # Game selection
+        game_options = [f"{g['date_str']} vs {g['away_team']}" for g in cards] + ["Manual"]
+        default_idx = 0
+        for i, g in enumerate(cards):
+            if g["status_type"] != "completed":
+                default_idx = i
+                break
+        selected_game = st.selectbox("Select Game", options=game_options, index=default_idx)
+
+        if selected_game == "Manual":
+            date = st.date_input("Date", datetime.today())
+            home_team = st.text_input("Home Team")
+            away_team = st.text_input("Away Team")
+        else:
+            gdata = cards[game_options.index(selected_game)]
+            date = gdata["date_obj"]
+            home_team = gdata["home_team"]
+            away_team = gdata["away_team"]
+
+        # Dynamic legs
+        legs_container = st.container()
+        new_legs = []
+        for idx, val in enumerate(st.session_state.legs_inputs):
+            col1, col2 = st.columns([4,1])
+            with col1:
+                new_val = st.text_input(f"Leg {idx+1}", value=val, key=f"leg_{idx}")
+                new_legs.append(new_val)
+            with col2:
+                if st.button("Remove", key=f"remove_{idx}"):
+                    new_legs[idx] = None
+        st.session_state.legs_inputs = [l for l in new_legs if l]
+        if st.button("Add Leg"):
+            st.session_state.legs_inputs.append("")
+
+        odds = st.number_input("Odds (American)", value=-110)
+        amount = st.number_input("Amount ($)", value=69.0)
+        result = st.selectbox("Result", ["pending", "win", "loss"])
+        pw_input = st.text_input("Password to save bet", type="password")
+
+        submit = st.form_submit_button("Save Bet")
+        if submit:
+            if pw_input != PASSWORD:
+                st.error("Incorrect password — bet not saved")
             else:
-                # grab game info from scoreboard_games
-                game_data = next(g['data'] for g in scoreboard_games if g['label'] == selected_game_label)
-                date = game_data.get("date")  # ISO string or datetime
-                home_team = game_data.get("home_team", "")
-                away_team = game_data.get("away_team", "")
-            
-            # -------------------
-            # Legs (dynamic list)
-            # -------------------
-            if "legs_inputs" not in st.session_state:
+                new_row = {
+                    "date": date,
+                    "game": selected_game,
+                    "home_team": home_team,
+                    "away_team": away_team,
+                    "legs": st.session_state.legs_inputs.copy(),
+                    "odds": odds,
+                    "amount": amount,
+                    "result": result
+                }
+                bets = pd.concat([bets, pd.DataFrame([new_row])], ignore_index=True)
+                save_data(bets)
+                st.success("Bet saved!")
                 st.session_state.legs_inputs = ["Capitals Moneyline", "A. Ovechkin 1+ Goal"]
-            
-            # Render current legs
-            legs_container = st.container()
-            new_legs = []
-            for idx, val in enumerate(st.session_state.legs_inputs):
-                col1, col2 = st.columns([4,1])
-                with col1:
-                    new_val = st.text_input(f"Leg {idx+1}", value=val, key=f"leg_{idx}")
-                    new_legs.append(new_val)
-                with col2:
-                    if st.button("Remove", key=f"remove_{idx}"):
-                        new_legs[idx] = None  # mark for removal
-            # Filter out removed
-            st.session_state.legs_inputs = [l for l in new_legs if l]
-
-            # Add new leg button
-            if st.button("Add Leg"):
-                st.session_state.legs_inputs.append("")
-
-            # -------------------
-            # Odds / Amount / Result / Password
-            # -------------------
-            odds = st.number_input("Odds (American)", value=-110)
-            amount = st.number_input("Amount ($)", value=69.0)
-            result = st.selectbox("Result", ["pending", "win", "loss"])
-            pw_input = st.text_input("Password to save bet", type="password")
-            
-            submit = st.form_submit_button("Save Bet")
-            
-            if submit:
-                if pw_input != password:
-                    st.error("Incorrect password — bet not saved")
-                else:
-                    # Build bet row
-                    new_row = {
-                        "date": date,
-                        "game": selected_game_label,
-                        "home_team": home_team,
-                        "away_team": away_team,
-                        "legs": st.session_state.legs_inputs.copy(),
-                        "odds": odds,
-                        "amount": amount,
-                        "result": result
-                    }
-                    bets = pd.concat([bets, pd.DataFrame([new_row])], ignore_index=True)
-                    bets.to_csv("bets.csv", index=False)
-                    st.success("Bet saved!")
-                    # Reset legs
-                    st.session_state.legs_inputs = ["Capitals Moneyline", "A. Ovechkin 1+ Goal"]
-    return bets
-
 # -----------------------------
 # Summary Stats
 # -----------------------------
