@@ -238,40 +238,91 @@ for user, units in USERS.items():
     user_amount = total_profit / 10 * units
     user_summary.append((user, units, user_amount))
 
-# --- HEADER ROW ---
-header_color = "green" if total_profit >= 0 else "red"
-with st.expander("", expanded=False):
-    # Use empty label to hide expander arrow text; arrow itself will still toggle
-    # Show header as first row inside expander
-    col1, col2, col3 = st.columns([1,1,1])
-    col1.markdown(f"<h2 style='color:{header_color};text-align:center'>Skeet Summary</h2>", unsafe_allow_html=True)
-    col2.markdown(f"<h2 style='color:{header_color};text-align:center'>{wins}-{losses}</h2>", unsafe_allow_html=True)
-    col3.markdown(f"<h2 style='color:{header_color};text-align:center'>${total_profit:.2f}</h2>", unsafe_allow_html=True)
+import streamlit as st
 
-    # --- User Breakdown table inside the same expander ---
-    st.write("")  # spacing
-    # Create a table-like layout using fixed-width columns
-    for name, units, user_amount in user_summary:
-        color = "green" if user_amount >=0 else "red"
-        uc1, uc2, uc3 = st.columns([2,1,1])
-        uc1.markdown(f"<div style='text-align:center'><small>{name}</small></div>", unsafe_allow_html=True)
-        uc2.markdown(f"<div style='text-align:center'><small>{units}</small></div>", unsafe_allow_html=True)
-        uc3.markdown(f"<div style='text-align:center'><small style='color:{color}'>${user_amount:.2f}</small></div>", unsafe_allow_html=True)
+# --- Example summary values ---
+wins = len(bets[bets["result"] == "win"])
+losses = len(bets[bets["result"] == "loss"])
+total_profit = bets["profit"].sum()
 
+# USERS dict: username -> units
+USERS = {
+    "Alice": 3,
+    "Bob": 2,
+    "Charlie": 5
+}
 
-# -----------------------------
-# User Breakdown (Units)
-# -----------------------------
-st.subheader("👥 User Performance")
-
-unit_value = bets["amount"].mean() / 10 if not bets.empty else 1
-user_data = []
+# --- Compute user summary ---
+user_summary = []
 for user, units in USERS.items():
-    user_profit = total_profit * (units / sum(USERS.values()))
-    user_data.append({"User": user, "Units": units, "Profit/Loss ($)": f"${user_profit:.2f}"})
+    user_amount = total_profit / 10 * units
+    user_summary.append((user, units, user_amount))
 
-user_df = pd.DataFrame(user_data)
-st.table(user_df)
+# --- Session state for modal ---
+if "show_modal" not in st.session_state:
+    st.session_state.show_modal = False
+
+# --- Summary as clickable row ---
+header_color = "green" if total_profit >= 0 else "red"
+if st.button("## Click to see summary details", key="summary_btn"):
+    st.session_state.show_modal = True
+
+# Show summary record
+col1, col2, col3 = st.columns([1,1,1])
+col1.markdown(f"<h2 style='color:{header_color};text-align:center'>Skeet Summary</h2>", unsafe_allow_html=True)
+col2.markdown(f"<h2 style='color:{header_color};text-align:center'>{wins}-{losses}</h2>", unsafe_allow_html=True)
+col3.markdown(f"<h2 style='color:{header_color};text-align:center'>${total_profit:.2f}</h2>", unsafe_allow_html=True)
+
+# --- Modal ---
+if st.session_state.show_modal:
+    modal_css = """
+    <style>
+    .modal-background {
+        position: fixed;
+        top:0; left:0; width:100%; height:100%;
+        background-color: rgba(0,0,0,0.5);
+        z-index:1000;
+    }
+    .modal-card {
+        position: fixed;
+        top:50%; left:50%;
+        transform: translate(-50%, -50%);
+        background-color:white;
+        padding:20px;
+        border-radius:10px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        z-index:1001;
+        width: 50%;
+    }
+    </style>
+    """
+    st.markdown(modal_css, unsafe_allow_html=True)
+
+    st.markdown("<div class='modal-background'></div>", unsafe_allow_html=True)
+    with st.container():
+        st.markdown("<div class='modal-card'>", unsafe_allow_html=True)
+        st.markdown("<h3 style='text-align:center'>User Breakdown</h3>", unsafe_allow_html=True)
+        
+        # Header row
+        c1, c2, c3 = st.columns([2,1,1])
+        c1.markdown("<b>User</b>", unsafe_allow_html=True)
+        c2.markdown("<b>Units</b>", unsafe_allow_html=True)
+        c3.markdown("<b>Amount</b>", unsafe_allow_html=True)
+        
+        # User rows
+        for name, units, user_amount in user_summary:
+            color = "green" if user_amount >= 0 else "red"
+            uc1, uc2, uc3 = st.columns([2,1,1])
+            uc1.markdown(f"<div style='text-align:center'><small>{name}</small></div>", unsafe_allow_html=True)
+            uc2.markdown(f"<div style='text-align:center'><small>{units}</small></div>", unsafe_allow_html=True)
+            uc3.markdown(f"<div style='text-align:center'><small style='color:{color}'>${user_amount:.2f}</small></div>", unsafe_allow_html=True)
+
+        # Close button
+        if st.button("Close", key="close_modal"):
+            st.session_state.show_modal = False
+        
+        st.markdown("</div>", unsafe_allow_html=True)
+
 
 # -----------------------------
 # Bankroll Chart
