@@ -280,38 +280,51 @@ for user, units in USERS.items():
 if "show_details" not in st.session_state:
     st.session_state.show_details = False
 
+import streamlit as st
+
 # -------------------
-# Summary row as colored card
+# Example summary data
+# -------------------
+wins = len(bets[bets["result"] == "win"])
+losses = len(bets[bets["result"] == "loss"])
+total_profit = bets["profit"].sum()
+USERS = {"Alice": 3, "Bob": 2, "Charlie": 5}
+
+# Compute user summary
+user_summary = []
+for user, units in USERS.items():
+    user_amount = total_profit / 10 * units
+    user_summary.append((user, units, user_amount))
+
+# -------------------
+# Session state for toggling details
+# -------------------
+if "show_details" not in st.session_state:
+    st.session_state.show_details = False
+
+# -------------------
+# Summary header row (H2, colored text)
 # -------------------
 header_color = "green" if total_profit >= 0 else "red"
 
-# Container for the card
-with st.container():
+col1, col2, col3 = st.columns([2,1,2])
+
+# Left: Skeet Summary
+col1.markdown(f"<h2 style='color:{header_color}; text-align:center;'>Skeet Summary</h2>", unsafe_allow_html=True)
+
+# Middle: W-L
+col2.markdown(f"<h2 style='color:{header_color}; text-align:center;'>{wins}-{losses}</h2>", unsafe_allow_html=True)
+
+# Right: Amount + small button inline
+with col3:
     st.markdown(
-        f"""
-        <div style="
-            background-color:{header_color};
-            padding:15px 10px;
-            border-radius:10px;
-            display:flex;
-            align-items:center;
-            justify-content:space-between;
-        ">
-            <div style="flex:2; text-align:center; font-weight:bold; color:black; font-size:20px;">
-                Skeet Summary
-            </div>
-            <div style="flex:1; text-align:center; font-weight:bold; color:black; font-size:20px;">
-                {wins}-{losses}
-            </div>
-            <div style="flex:1; text-align:center; font-weight:bold; color:black; font-size:20px; display:flex; justify-content:center; align-items:center;">
-                <span>${total_profit:.2f}</span>
-            </div>
-            <div style="flex:0 0 auto;">
-    """,
+        f"<div style='display:flex; justify-content:center; align-items:center;'>"
+        f"<h2 style='color:{header_color}; margin:0;'>${total_profit:.2f}</h2>"
+        f"<div style='margin-left:10px;'>",
         unsafe_allow_html=True
     )
 
-    # Small inline button for View Details
+    # Inline button
     if st.button("View Details", key="view_details_btn"):
         st.session_state.show_details = not st.session_state.show_details
 
