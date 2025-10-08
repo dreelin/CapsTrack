@@ -7,8 +7,6 @@ import time
 import pytz
 from streamlit_cookies_manager import EncryptedCookieManager
 import ast
-from PIL import Image
-from io import BytesIO
 
 
 st.set_page_config(page_title="Caps Bet Tracker", layout="wide")
@@ -383,7 +381,7 @@ bets_display["profit_str"] = bets_display["profit"].apply(lambda p: f"${p:.2f}")
 
 # Build table manually
 for i, row in bets_display.sort_values("date", ascending=False).iterrows():
-    cols = st.columns([1, 2, 3, 1, 1, 1, 1, 2])  # Adjust widths
+    cols = st.columns([1, 3, 3, 1, 1, 1, 1, 1])  # Adjust widths
     
     # Date
     cols[0].markdown(row["date_str"])
@@ -408,16 +406,13 @@ for i, row in bets_display.sort_values("date", ascending=False).iterrows():
         settle_col = cols[7]
         btn_cols = settle_col.columns([1,1,1])
         
-        # Win button with Caps logo
-        response = requests.get("https://a.espncdn.com/guid/cbe677ee-361e-91b4-5cae-6c4c30044743/logos/secondary_logo_on_primary_color.png")
-        img = Image.open(BytesIO(response.content)).resize((20,20))
-        if btn_cols[0].button("", key=f"win_{i}"):
+        # Win button
+        if btn_cols[0].button("W", key=f"win_{i}"):
             bets.at[i, "result"] = "win"
             profit = bets.at[i, "amount"] * (100 / abs(bets.at[i, "odds"])) if bets.at[i, "odds"] < 0 else bets.at[i, "amount"] * (bets.at[i, "odds"] / 100)
             bets.at[i, "profit"] = round(profit,2)
             save_data(bets)
             st.rerun()
-        btn_cols[0].image(img)
         
         # Loss button
         if btn_cols[1].button("L", key=f"loss_{i}"):
@@ -432,7 +427,22 @@ for i, row in bets_display.sort_values("date", ascending=False).iterrows():
             bets.at[i, "profit"] = 0
             save_data(bets)
             st.rerun()
-
+win_html = f"""
+<form action="?win={i}" method="post">
+    <button style="
+        background-color:#16a34a;
+        border:none;
+        color:white;
+        padding:4px 8px;
+        border-radius:6px;
+        cursor:pointer;
+    ">
+        <img src="https://a.espncdn.com/guid/cbe677ee-361e-91b4-5cae-6c4c30044743/logos/secondary_logo_on_primary_color.png"
+             style="height:20px; vertical-align:middle"/>
+    </button>
+</form>
+"""
+btn_cols[0].markdown(win_html, unsafe_allow_html=True)
 st.markdown("<div id='user-breakdown'></div>", unsafe_allow_html=True)
 st.markdown("<hr>", unsafe_allow_html=True)
 
