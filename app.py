@@ -10,7 +10,8 @@ st.title("🏒 Caps Bet Tracker")
 # -----------------------------
 # Configuration
 # -----------------------------
-PASSWORD = "secret123"
+PASSWORD = st.secrets["password"]
+TEAM_ID = 3691  # Washington Capitals Sofascore ID
 USERS = {
     "Alex": 10,   # units
     "Ben": 8,
@@ -34,6 +35,74 @@ def save_data(df):
 
 bets = load_data()
 
+def fetch_games(url):
+    resp = requests.get(url)
+    if resp.status_code != 200:
+        st.warning(f"Failed to fetch data from SofaScore: {resp.status_code}")
+        return []
+    return resp.json().get("events", [])
+
+def format_game_tile(game, is_past=True):
+    start_dt = datetime.fromtimestamp(game["startTimestamp"])
+    away_team = game["awayTeam"]["name"]
+    home_team = game["homeTeam"]["name"]
+    
+    away_score = game.get("awayScore", {}).get("current", "")
+    home_score = game.get("homeScore", {}).get("current", "")
+
+    # Determine result & background color
+    result_text = ""
+    bg_color = "#ffffff"  # default white
+
+    if is_past:
+        winner_code = game.get("winnerCode")
+        status_code = game.get("status", {}).get("code", 100)
+        ot_text = " OT" if status_code != 100 else ""
+
+        # Capitals W/L
+        if (winner_code == 1 and home_team == "Capitals") or (winner_code == 2 and away_team == "Capitals"):
+            result_text = f"W{ot_text}"
+            bg_color = "#d4f4dd"  # light green
+        else:
+            result_text = f"L{ot_text}"
+            bg_color = "#f8d3d3"  # light red
+
+    # Build HTML card
+    html = f"""
+    <div style="
+        border-radius:10px;
+        border:1px solid #ccc;
+        padding:10px;
+        margin:5px;
+        width:250px;
+        background-color:{bg_color};
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+    ">
+        <strong>{start_dt.strftime('%Y-%m-%d %H:%M')} {result_text}</strong><br>
+        <div style="display:flex; justify-content:space-between;">
+            <span>{away_team}</span><span>{away_score}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+            <span>{home_team}</span><span>{home_score}</span>
+        </div>
+    </div>
+    """
+    return html
+
+# Fetch recent and upcoming games
+recent_games = fetch_games(f"https://www.sofascore.com/api/v1/team/{TEAM_ID}/events/last/0")[:2]
+upcoming_games = fetch_games(f"https://www.sofascore.com/api/v1/team/{TEAM_ID}/events/next/0")[:3]
+
+st.subheader("🏒 Caps Games")
+cols = st.columns(5)  # 2 recent + 3 upcoming = 5 cards
+
+for i, game in enumerate(recent_games + upcoming_games):
+    is_past = i < len(recent_games)
+    html_card = format_game_tile(game, is_past)
+    cols[i].markdown(html_card, unsafe_allow_html=True)
+
+
+
 # -----------------------------
 # Password Gate for Editing
 # -----------------------------
@@ -45,6 +114,7 @@ if not st.session_state["auth"]:
     if pw == PASSWORD:
         st.session_state["auth"] = True
         st.experimental_rerun()
+
 
 # -----------------------------
 # Add Bet Form
