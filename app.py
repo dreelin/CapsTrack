@@ -58,12 +58,16 @@ if not cookies.ready():
 def load_data():
     try:
         df = pd.read_csv(DATA_FILE)
+        if not df.empty:
+            df["date"] = pd.to_datetime(df["date"], errors="coerce")
     except FileNotFoundError:
         df = pd.DataFrame(columns=["date", "game", "home_team", "away_team",
                                    "legs", "odds", "amount", "result", "profit"])
     return df
 
+
 def save_data(df):
+    df["date"] = pd.to_datetime(df["date"], errors="coerce")
     df.to_csv(DATA_FILE, index=False)
 
 bets = load_data()
@@ -250,7 +254,7 @@ with st.expander("➕ Add New Bet", expanded=True):
                         st.error("Selected game not found")
                         st.stop()
                     game_text = f"{game_data['away_team']} vs {game_data['home_team']}"
-                    game_date = game_data["date_obj"].date()
+                    game_date = game_data["date_obj"]
                     game_id = game_data["id"]
 
                 # Process legs
@@ -318,7 +322,8 @@ col3.markdown(f"<h2 style='color:{header_color}; text-align:center;'>"
 st.subheader("💰 Bankroll Growth")
 
 if not bets.empty:
-    bets_sorted = bets.sort_values("date")
+    bets_sorted = bets.sort_values("date").dropna(subset=["date"])
+    bets_sorted["date"] = bets_sorted["date"].dt.date  # optional: remove time
     bets_sorted["cumulative_profit"] = bets_sorted["profit"].cumsum()
     st.line_chart(bets_sorted.set_index("date")["cumulative_profit"])
 else:
