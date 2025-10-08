@@ -214,6 +214,20 @@ if len(cards) < 5:
     cards += future_games[3:3+needed]
 
 cols = st.columns(5)
+
+# Capitals logo fixed
+caps_logo = "https://a.espncdn.com/guid/cbe677ee-361e-91b4-5cae-6c4c30044743/logos/secondary_logo_on_primary_color.png"
+
+# Other team logo (away or home)
+def get_team_logo(team):
+    if team["team"]["displayName"] == "Washington Capitals":
+        return caps_logo
+    logos = team["team"].get("logos", [])
+    if logos:
+        return logos[0].get("href", "")
+    return ""  # fallback
+
+
 for i, game in enumerate(cards[:5]):
     g = game
     # Background color for past games
@@ -225,6 +239,11 @@ for i, game in enumerate(cards[:5]):
     else:
         bg_color = "#ffffff"
         result_text = ""
+
+    away_logo = get_team_logo({"team": {"displayName": g['away_team'], "logos": []}})
+    home_logo = get_team_logo({"team": {"displayName": g['home_team'], "logos": []}})
+
+
     html = f"""
     <a href="{g['gamecast_url']}" target="_blank" style="text-decoration:none;color:inherit;">
     <div style="
@@ -239,11 +258,11 @@ for i, game in enumerate(cards[:5]):
     ">
         <strong>{g['date_str']} {result_text}</strong><br>
         <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span>{g['away_team']}</span>
+            <span><img src="{away_logo}" width="20" style="vertical-align:middle; margin-right:5px;">{g['away_team']}</span>
             <span>{g['away_score']}</span>
         </div>
         <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span>{g['home_team']}</span>
+            <span><img src="{home_logo}" width="20" style="vertical-align:middle; margin-right:5px;">{g['home_team']}</span>
             <span>{g['home_score']}</span>
         </div>
     </div>
