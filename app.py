@@ -7,6 +7,9 @@ import time
 import pytz
 from streamlit_cookies_manager import EncryptedCookieManager
 import ast
+from PIL import Image
+from io import BytesIO
+
 
 st.set_page_config(page_title="Caps Bet Tracker", layout="wide")
 
@@ -367,6 +370,60 @@ bets_display["legs"] = bets_display["legs"].apply(parse_legs)
 
 # Render with Streamlit dataframe (pills may appear automatically)
 st.dataframe(bets_display.sort_values("date", ascending=False), use_container_width=True)
+
+
+
+bets_display = bets.copy()
+bets_display["legs"] = bets_display["legs"].apply(parse_legs)
+
+# Format columns
+bets_display["date_str"] = bets_display["date"].apply(lambda d: d.strftime("%m/%d/%Y") if pd.notnull(d) else "")
+bets_display["profit_str"] = bets_display["profit"].apply(lambda p: f"${p:.2f}")
+
+# Display each row manually
+for i, row in bets_display.sort_values("date", ascending=False).iterrows():
+    cols = st.columns([1, 2, 3, 1, 1, 1, 1, 2])  # Adjust widths as needed
+    
+    cols[0].markdown(row["date_str"])
+    cols[1].markdown(row["game"])
+    # Render legs as pills
+    legs_html = " ".join([f"<span style='display:inline-block; padding:2px 8px; border-radius:12px; background:#eee; margin:2px;'>{l}</span>" for l in row["legs"]])
+    cols[2].markdown(legs_html, unsafe_allow_html=True)
+    cols[3].markdown(row["odds"])
+    cols[4].markdown(row["amount"])
+    cols[5].markdown(row["result"])
+    cols[6].markdown(row["profit_str"])
+    
+    # Settle Bet column
+    if row["result"] == "pending" and st.session_state.auth:
+        settle_col = cols[7]
+        settle_subcols = settle_col.columns([1, 1, 1])
+        
+        # Win button with image
+        response = requests.get("https://a.espncdn.com/guid/cbe677ee-361e-91b4-5cae-6c4c30044743/logos/secondary_logo_on_primary_color.png")
+        img = Image.open(BytesIO(response.content)).resize((30,30))  # small size
+        if settle_subcols[0].button("", key=f"win_{i}"):
+            # Update the bet
+            bets.at[i, "result"] = "win"
+            profit = bets.at[i, "amount"] * (100 / abs(bets.at[i, "odds"])) if bets.at[i, "odds"] < 0 else bets.at[i, "amount"] * (bets.at[i, "odds"] / 100)
+            bets.at[i, "profit"] = profit
+            save_data(bets)
+            st.experimental_rerun()
+        settle_subcols[0].image(img)
+        
+        # Loss button
+        if settle_subcols[1].button("L", key=f"loss_{i}"):
+            bets.at[i, "result"] = "loss"
+            bets.at[i, "profit"] = -bets.at[i, "amount"]
+            save_data(bets)
+            st.experimental_rerun()
+        
+        # Void button
+        if settle_subcols[2].button("V", key=f"void_{i}"):
+            bets.at[i, "result"] = "void"
+            bets.at[i, "profit"] = 0
+            save_data(bets)
+            st.experimental_rerun()
 
 st.markdown("<div id='user-breakdown'></div>", unsafe_allow_html=True)
 st.markdown("<hr>", unsafe_allow_html=True)
