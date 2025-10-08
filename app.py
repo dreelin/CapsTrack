@@ -113,9 +113,9 @@ def get_gs_client():
 # Load bets
 def load_bets_from_gsheet():
     try:
-        client = get_gs_client()
-        sheet = client.open(SHEET_NAME).sheet1
-        data = sheet.get_all_records()
+        client = gspread.service_account_from_dict(st.secrets["gspread"])
+        sheet = client.open(SHEET_NAME).sheet1  # First worksheet
+        data = sheet.get_all_records()          # ✅ Correct method
         df = pd.DataFrame(data)
         if not df.empty:
             df["date"] = pd.to_datetime(df["date"], errors="coerce")
