@@ -342,8 +342,8 @@ with col3:
         """,
         unsafe_allow_html=True
     )
-    # Checkbox returns the new state; use same session key so it persists
-    st.session_state.show_details = st.checkbox(f"${total_profit:.2f}", value=st.session_state.show_details, key="show_details")
+    # Widget updates session state automatically; no manual assignment after creation
+    st.checkbox(f"${total_profit:.2f}", key="show_details")
     st.markdown("<div class='toggle-hint'>(click amount for details)</div>", unsafe_allow_html=True)
 
 # -------------------
