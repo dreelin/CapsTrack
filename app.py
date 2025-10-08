@@ -319,32 +319,34 @@ col1.markdown(f"<h2 style='color:{header_color}; text-align:center;'>Skeet Summa
 # Middle: W-L
 col2.markdown(f"<h2 style='color:{header_color}; text-align:center;'>{wins}-{losses}</h2>", unsafe_allow_html=True)
 
-# Right: Amount acts as toggle (styled checkbox label, no navigation)
+# Right: Amount acts as toggle (styled clickable amount text, no navigation)
 with col3:
-    st.markdown(
-        f"""
-        <style>
-        /* Hide the actual checkbox square for this specific key */
-        div.stCheckbox > label > div:first-child {{display:none;}}
-        /* Style the label to look like the original amount heading */
-        div.stCheckbox > label {{
-            font-size:2rem !important;
-            font-weight:700 !important;
-            color:{header_color} !important;
-            padding-left:0 !important;
-            cursor:pointer;
-            line-height:1;
-        }}
-        /* Remove extra gap under the element */
-        div.stCheckbox {{margin-bottom:0;}}
-        div.toggle-hint {{font-size:10px; margin-top:2px; color:#888;}}
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-    # Widget updates session state automatically; no manual assignment after creation
-    st.checkbox(f"${total_profit:.2f}", key="show_details")
-    st.markdown("<div class='toggle-hint'>(click amount for details)</div>", unsafe_allow_html=True)
+    # Wrapper div to scope styles
+    st.markdown("<div class='amount-block'>", unsafe_allow_html=True)
+    if st.button(f"${total_profit:.2f}", key="amount_toggle"):
+        st.session_state.show_details = not st.session_state.get("show_details", False)
+    st.markdown("</div>", unsafe_allow_html=True)
+    # Scoped CSS so only this button looks like plain heading text
+    st.markdown(f"""
+    <style>
+    .amount-block button {{
+        background:transparent !important;
+        border:none !important;
+        color:{header_color} !important;
+        font-size:2rem !important;
+        font-weight:700 !important;
+        padding:0 !important;
+        margin:0 !important;
+        line-height:1 !important;
+        box-shadow:none !important;
+        cursor:pointer !important;
+    }}
+    .amount-block button:hover {{
+        text-decoration:underline;
+    }}
+    </style>
+    <div style='font-size:10px; margin-top:2px; color:#888;'>(click amount for details)</div>
+    """, unsafe_allow_html=True)
 
 # -------------------
 # User breakdown (conditional)
