@@ -81,8 +81,6 @@ if not st.session_state.auth:
         st.rerun()
     st.stop()
 
-st.write("✅ Authenticated!")
-
 # -----------------------------
 # ESPN Schedule
 # -----------------------------
@@ -229,17 +227,12 @@ with st.expander("➕ Add New Bet", expanded=True):
         legs_text = st.text_area("Legs (one per line)", value="Capitals Moneyline\nA. Ovechkin 1+ Goal", height=100)
 
         # ---------------------
-        # Password
-        # ---------------------
-        pw = st.text_input("Password to save bet", type="password")
-
-        # ---------------------
         # Submit
         # ---------------------
         submit = st.form_submit_button("Save Bet")
         if submit:
-            if pw != PASSWORD:
-                st.error("Incorrect password, bet not saved.")
+            if not st.session_state.get("auth"):
+                st.error("You are not authorized to save bets. Please log in first.")
             else:
                 # Determine game data
                 if manual:
@@ -265,7 +258,7 @@ with st.expander("➕ Add New Bet", expanded=True):
 
                 profit = 0
                 if result == "win":
-                    profit = amount * (abs(odds) / 100) if odds < 0 else amount * (odds / 100)
+                    profit = amount * (100 / abs(odds)) if odds < 0 else amount * (odds / 100)
                 elif result == "loss":
                     profit = -amount
 
