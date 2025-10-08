@@ -204,28 +204,76 @@ if not st.session_state["auth"]:
 # -----------------------------
 # Add Bet Form
 # -----------------------------
-
-with st.expander("➕ Add New Bet"):
+with st.expander("➕ Add New Bet", expanded=True):
     with st.form("new_bet"):
-        date = st.date_input("Date", datetime.today())
-        game = st.text_input("Game (e.g. Caps vs Rangers)")
-        legs = st.text_area("Legs (e.g. Caps ML, Ovechkin to score)")
+        # --- Game dropdown ---
+        game_labels = [f"{g['date'].strftime('%-m/%-d')} vs {g['away_team'] if g['home_team']=='Washington Capitals' else g['home_team']}" 
+                       for g in cards] + ["Manual"]
+        # Find index of first upcoming game
+        upcoming_index = 0
+        for i, g in enumerate(cards):
+            status_type = get_status_name(g)
+            if status_type != "completed":
+                upcoming_index = i
+                break
+
+        selected_game_label = st.selectbox("Game", options=game_labels, index=upcoming_index)
+
+        # Determine game details
+        if selected_game_label == "Manual":
+            date = st.date_input("Date", datetime.today())
+            home_team = st.text_input("Home Team")
+            away_team = st.text_input("Away Team")
+            game_id = None
+        else:
+            idx = game_labels.index(selected_game_label)
+            g = cards[idx]
+            comp = g["competitions"][0]
+            game_id = g["id"]
+            home_team = comp["competitors"][0]["team"]["displayName"]
+            away_team = comp["competitors"][1]["team"]["displayName"]
+            date = datetime.fromisoformat(comp.get("date").replace("Z","+00:00")).astimezone(EASTERN).date()
+
+        # --- Dynamic Legs Input ---
+        if "legs_list" not in st.session_state:
+            st.session_state.legs_list = ["Capitals Moneyline", "A. Ovechkin 1+ Goal"]
+
+        legs_container = st.container()
+        for i, leg in enumerate(st.session_state.legs_list):
+            new_leg = legs_container.text_input(f"Leg {i+1}", value=leg, key=f"leg_{i}")
+            st.session_state.legs_list[i] = new_leg
+
+        if st.button("Add Leg"):
+            st.session_state.legs_list.append("")
+
+        # --- Other Inputs ---
         odds = st.number_input("Odds (American)", value=-110)
-        amount = st.number_input("Amount ($)", value=10.0)
-        result = st.selectbox("Result", ["pending", "win", "loss"])
+        amount = st.number_input("Amount ($)", value=69.0)
+        pw = st.text_input("Password", type="password")
+
+        # --- Form Submission ---
         submit = st.form_submit_button("Save Bet")
         if submit:
-            new_row = {
-                "date": date,
-                "game": game,
-                "legs": legs,
-                "odds": odds,
-                "amount": amount,
-                "result": result,
-            }
-            bets = pd.concat([bets, pd.DataFrame([new_row])], ignore_index=True)
-            save_data(bets)
-            st.success("Bet saved!")
+            if pw != PASSWORD:
+                st.error("Incorrect password")
+            else:
+                new_row = {
+                    "date": date,
+                    "home_team": home_team,
+                    "away_team": away_team,
+                    "game_id": game_id,
+                    "legs": st.session_state.legs_list.copy(),
+                    "odds": odds,
+                    "amount": amount,
+                    "result": "pending"
+                }
+                bets = pd.concat([bets, pd.DataFrame([new_row])], ignore_index=True)
+                save_data(bets)
+                st.success("Bet saved!")
+
+                # Reset legs to defaults after submission
+                st.session_state.legs_list = ["Capitals Moneyline", "A. Ovechkin 1+ Goal"]
+
 
 # -----------------------------
 # Summary Stats
@@ -301,7 +349,7 @@ if "show_details" not in st.session_state:
 import streamlit as st
 
 # -------------------
-# Example summary data
+# summary data
 # -------------------
 wins = len(bets[bets["result"] == "win"])
 losses = len(bets[bets["result"] == "loss"])
