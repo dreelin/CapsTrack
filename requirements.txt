@@ -3,3 +3,8 @@ pandas
 matplotlib
 requests
 streamlit_cookies_manager
+gspread>=6.10.0
+google-auth>=2.22.0
+google-auth-oauthlib>=1.2.0
+google-auth-httplib2>=0.1.0
+gspread-dataframe>=3.2.5

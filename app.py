@@ -7,6 +7,8 @@ import time
 import pytz
 from streamlit_cookies_manager import EncryptedCookieManager
 import ast
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 
 
 st.set_page_config(page_title="Caps Bet Tracker", layout="wide", initial_sidebar_state="collapsed")
@@ -72,6 +74,8 @@ document.addEventListener('DOMContentLoaded', () => {
 # -----------------------------
 PASSWORD = st.secrets["password"]
 COOKIE_SECRET = st.secrets["cookie_secret"]
+GSPREAD_KEY = st.secrets["gspread"]["private_key"]
+SHEET_NAME = st.secrets["sheet_name"]
 
 TEAM_ID = 23  # Washington Capitals ESPN ID
 EASTERN = pytz.timezone("US/Eastern")
@@ -98,22 +102,60 @@ if not cookies.ready():
 # -----------------------------
 # Load/Save Data
 # -----------------------------
-def load_data():
+# Authenticate with Google Sheets
+def get_gs_client():
+    scope = ["https://www.googleapis.com/auth/spreadsheets"]
+    creds_dict = st.secrets["gspread"]
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+    client = gspread.authorize(creds)
+    return client
+
+# Load bets
+def load_bets_from_gsheet():
     try:
-        df = pd.read_csv(DATA_FILE)
+        client = get_gs_client()
+        sheet = client.open(SHEET_NAME).sheet1
+        data = sheet.get_all_records()
+        df = pd.DataFrame(data)
         if not df.empty:
             df["date"] = pd.to_datetime(df["date"], errors="coerce")
-    except FileNotFoundError:
-        df = pd.DataFrame(columns=["date", "game", "home_team", "away_team",
-                                   "legs", "odds", "amount", "result", "profit"])
-    return df
+            df["legs"] = df["legs"].apply(lambda x: ast.literal_eval(x) if x else [])
+        return df
+    except Exception as e:
+        st.warning(f"Failed to load bets from Google Sheet: {e}")
+        return pd.DataFrame(columns=["date", "game", "home_team", "away_team",
+                                     "legs", "odds", "amount", "result", "profit"])
+
+# Save bets
+def save_bets_to_gsheet(df):
+    try:
+        client = get_gs_client()
+        sheet = client.open(SHEET_NAME).sheet1
+        # Convert DataFrame to list of lists for gspread
+        df_to_save = df.copy()
+        df_to_save["legs"] = df_to_save["legs"].apply(str)
+        sheet.clear()
+        sheet.update([df_to_save.columns.values.tolist()] + df_to_save.values.tolist())
+    except Exception as e:
+        st.error(f"Failed to save bets to Google Sheet: {e}")
 
 
-def save_data(df):
-    df["date"] = pd.to_datetime(df["date"], errors="coerce")
-    df.to_csv(DATA_FILE, index=False)
+# def load_data():
+#     try:
+#         df = pd.read_csv(DATA_FILE)
+#         if not df.empty:
+#             df["date"] = pd.to_datetime(df["date"], errors="coerce")
+#     except FileNotFoundError:
+#         df = pd.DataFrame(columns=["date", "game", "home_team", "away_team",
+#                                    "legs", "odds", "amount", "result", "profit"])
+#     return df
 
-bets = load_data()
+
+# def save_data(df):
+#     df["date"] = pd.to_datetime(df["date"], errors="coerce")
+#     df.to_csv(DATA_FILE, index=False)
+
+bets = load_bets_from_gsheet()
 
 if "auth" not in st.session_state:
     st.session_state.auth = cookies.get("auth") == "ok"
@@ -385,7 +427,7 @@ with st.expander("Add Bet", expanded=False):
 
                 }
                 bets = pd.concat([bets, pd.DataFrame([new_row])], ignore_index=True)
-                save_data(bets)
+                save_bets_to_gsheet(bets)
                 st.success("Bet saved!")
 
 # -----------------------------
@@ -452,21 +494,21 @@ for i, row in bets_display.sort_values("date", ascending=False).iterrows():
             bets.at[i, "result"] = "win"
             profit = bets.at[i, "amount"] * (100 / abs(bets.at[i, "odds"])) if bets.at[i, "odds"] < 0 else bets.at[i, "amount"] * (bets.at[i, "odds"] / 100)
             bets.at[i, "profit"] = round(profit,2)
-            save_data(bets)
+            save_bets_to_gsheet(bets)
             st.rerun()
 
         # Loss button
         if btn_cols[1].button("L", key=f"loss_{i}"):
             bets.at[i, "result"] = "loss"
             bets.at[i, "profit"] = -bets.at[i, "amount"]
-            save_data(bets)
+            save_bets_to_gsheet(bets)
             st.rerun()
         
         # Void button
         if btn_cols[2].button("V", key=f"void_{i}"):
             bets.at[i, "result"] = "void"
             bets.at[i, "profit"] = 0
-            save_data(bets)
+            save_bets_to_gsheet(bets)
             st.rerun()
 
 st.markdown("<div id='user-breakdown'></div>", unsafe_allow_html=True)
