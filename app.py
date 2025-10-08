@@ -145,11 +145,8 @@ def format_game_dropdown(games):
     options = []
     for g in games:
         try:
-            comp = g["competitions"][0]
-            home = comp["competitors"][0]["team"]["displayName"]
-            away = comp["competitors"][1]["team"]["displayName"]
-            dt = datetime.fromisoformat(comp["date"].replace("Z", "+00:00")).astimezone(EASTERN)
-            options.append(f"{dt.strftime('%-m/%-d')} {away} vs {home}||{g['id']}")
+            dt = g["date_obj"]
+            options.append(f"{dt.strftime('%-m/%-d')} {g['away_team']} vs {g['home_team']}||{g['id']}")
         except Exception:
             continue
     options.append("Manual")
