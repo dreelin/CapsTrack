@@ -216,7 +216,6 @@ if st.session_state["auth"]:
 # -----------------------------
 # Summary Stats
 # -----------------------------
-total_bets = len(bets)
 wins = len(bets[bets["result"] == "win"])
 losses = len(bets[bets["result"] == "loss"])
 
@@ -241,25 +240,23 @@ for user, units in USERS.items():
 
 # --- HEADER ROW ---
 header_color = "green" if total_profit >= 0 else "red"
-col1, col2, col3 = st.columns([1,1,1])
-col1.markdown(f"<h2 style='color:{header_color};text-align:center'>{total_bets}</h2>", unsafe_allow_html=True)
-col2.markdown(f"<h2 style='color:{header_color};text-align:center'>{wins}-{losses}</h2>", unsafe_allow_html=True)
-col3.markdown(f"<h2 style='color:{header_color};text-align:center'>${total_profit:.2f}</h2>", unsafe_allow_html=True)
+with st.expander("", expanded=False):
+    # Use empty label to hide expander arrow text; arrow itself will still toggle
+    # Show header as first row inside expander
+    col1, col2, col3 = st.columns([1,1,1])
+    col1.markdown(f"<h2 style='color:{header_color};text-align:center'>{wins+losses}</h2>", unsafe_allow_html=True)
+    col2.markdown(f"<h2 style='color:{header_color};text-align:center'>{wins}-{losses}</h2>", unsafe_allow_html=True)
+    col3.markdown(f"<h2 style='color:{header_color};text-align:center'>${total_profit:.2f}</h2>", unsafe_allow_html=True)
 
-# --- EXPANDER FOR USER BREAKDOWN ---
-with st.expander("User Breakdown"):
+    # --- User Breakdown table inside the same expander ---
     st.write("")  # spacing
-    c1, c2, c3 = st.columns([1,1,1])
-    c1.markdown("<b>User</b>", unsafe_allow_html=True)
-    c2.markdown("<b>Units</b>", unsafe_allow_html=True)
-    c3.markdown("<b>Amount</b>", unsafe_allow_html=True)
-
+    # Create a table-like layout using fixed-width columns
     for name, units, user_amount in user_summary:
         color = "green" if user_amount >=0 else "red"
-        uc1, uc2, uc3 = st.columns([1,1,1])
-        uc1.markdown(f"<small>{name}</small>", unsafe_allow_html=True)
-        uc2.markdown(f"<small>{units}</small>", unsafe_allow_html=True)
-        uc3.markdown(f"<small style='color:{color}'>${user_amount:.2f}</small>", unsafe_allow_html=True)
+        uc1, uc2, uc3 = st.columns([2,1,1])
+        uc1.markdown(f"<div style='text-align:center'><small>{name}</small></div>", unsafe_allow_html=True)
+        uc2.markdown(f"<div style='text-align:center'><small>{units}</small></div>", unsafe_allow_html=True)
+        uc3.markdown(f"<div style='text-align:center'><small style='color:{color}'>${user_amount:.2f}</small></div>", unsafe_allow_html=True)
 
 
 
