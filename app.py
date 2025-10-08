@@ -196,6 +196,8 @@ def fetch_espn_schedule(team_id):
                 "date_str": dt.strftime("%-m/%-d %-I:%M %p ET"),
                 "gamecast_url": next((l["href"] for l in g.get("links", [])
                                       if l.get("text") == "Gamecast" and "desktop" in l.get("rel", [])), "#"),
+                "home_logo": home.get("team", {}).get("logos", [{}])[0].get("href", ""),
+                "away_logo": home.get("away", {}).get("logos", [{}])[0].get("href", ""),
             })
         return games
     except Exception as e:
@@ -218,14 +220,10 @@ cols = st.columns(5)
 # Capitals logo fixed
 caps_logo = "https://a.espncdn.com/guid/cbe677ee-361e-91b4-5cae-6c4c30044743/logos/secondary_logo_on_primary_color.png"
 
-# Other team logo (away or home)
-def get_team_logo(team):
-    if team["team"]["displayName"] == "Washington Capitals":
+def get_team_logo(team_name, scraped_logo):
+    if team_name == "Washington Capitals":
         return caps_logo
-    logos = team["team"].get("logos", [])
-    if logos:
-        return logos[0].get("href", "")
-    return ""  # fallback
+    return scraped_logo or ""  # fallback if scraped_logo is missing
 
 
 for i, game in enumerate(cards[:5]):
@@ -240,8 +238,8 @@ for i, game in enumerate(cards[:5]):
         bg_color = "#ffffff"
         result_text = ""
 
-    away_logo = get_team_logo({"team": {"displayName": g['away_team'], "logos": []}})
-    home_logo = get_team_logo({"team": {"displayName": g['home_team'], "logos": []}})
+    away_logo = get_team_logo(g["away_team"], g.get("away_logo", ""))
+    home_logo = get_team_logo(g["home_team"], g.get("home_logo", ""))
 
 
     html = f"""
