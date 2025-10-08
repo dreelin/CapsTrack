@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 import requests
 import time
+import pytz
 
 st.set_page_config(page_title="Caps Bet Tracker", layout="wide")
 st.title("🏒 Caps Bet Tracker")
@@ -13,6 +14,7 @@ st.title("🏒 Caps Bet Tracker")
 # -----------------------------
 PASSWORD = st.secrets["password"]
 TEAM_ID = 23  # Washington Capitals ESPN ID
+EASTERN = pytz.timezone("US/Eastern")
 USERS = {
     "Alex": 10,   # units
     "Ben": 8,
@@ -90,13 +92,17 @@ def build_game_card(game):
             result_text = ""
             bg_color = "#ffffff"
 
-        start_dt = datetime.fromisoformat(comp.get("date", game.get("date")).replace("Z", "+00:00"))
+        # Convert date to ET and format
+        dt_utc = datetime.fromisoformat(comp.get("date", game.get("date")).replace("Z", "+00:00"))
+        dt_et = dt_utc.astimezone(EASTERN)
+        dt_str = dt_et.strftime("%-m/%-d %-I:%M %p ET")
 
         # Gamecast link
-        gamecast_url = next(
-            (link["href"] for link in game.get("links", []) if "gamecast" in link.get("rel", [])),
-            "#"
-        )
+        gamecast_url = "#"
+        for link in game.get("links", []):
+            if link.get("text") == "Gamecast" and "desktop" in link.get("rel", []):
+                gamecast_url = link["href"]
+                break
 
         html = f"""
         <a href="{gamecast_url}" target="_blank" style="text-decoration:none;color:inherit;">
@@ -107,9 +113,10 @@ def build_game_card(game):
             margin:5px;
             width:250px;
             background-color:{bg_color};
+            color:black;
             box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
         ">
-            <strong>{start_dt.strftime('%Y-%m-%d %H:%M')} {result_text}</strong><br>
+            <strong>{dt_str} {result_text}</strong><br>
             <div style="display:flex; justify-content:space-between;">
                 <span>{away_team}</span><span>{away_score}</span>
             </div>
