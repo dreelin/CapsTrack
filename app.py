@@ -350,6 +350,20 @@ with st.expander("Add Bet", expanded=False):
 # Bet History
 # -----------------------------
 st.subheader("Bet History")
+
+def parse_legs(x):
+    if isinstance(x, list):
+        return x
+    try:
+        # Try to parse string representation of list
+        parsed = ast.literal_eval(x)
+        if isinstance(parsed, list):
+            return parsed
+        return [str(parsed)]
+    except Exception:
+        # Fallback: split by comma
+        return [s.strip() for s in str(x).split(",")]
+
 bets_display = bets.copy()
 bets_display["legs"] = bets_display["legs"].apply(parse_legs)
 
