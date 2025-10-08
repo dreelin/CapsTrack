@@ -28,6 +28,8 @@ document.addEventListener('DOMContentLoaded', () => {
 # Configuration
 # -----------------------------
 PASSWORD = st.secrets["password"]
+COOKIE_SECRET = st.secrets["cookie_secret"]
+
 TEAM_ID = 23  # Washington Capitals ESPN ID
 EASTERN = pytz.timezone("US/Eastern")
 USERS = {
@@ -38,7 +40,10 @@ USERS = {
 
 DATA_FILE = "bets.csv"
 
-cookies = EncryptedCookieManager(prefix="capstrack_")
+cookies = EncryptedCookieManager(
+    prefix="capstrack_",
+    password=st.secrets.get("cookie_secret", COOKIE_SECRET)
+)
 
 if not cookies.ready():
     st.stop()
