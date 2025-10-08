@@ -258,37 +258,55 @@ for user, units in USERS.items():
     user_amount = total_profit / 10 * units
     user_summary.append((user, units, user_amount))
 
+import streamlit as st
+
 # -------------------
-# Summary row as styled expander
+# Example summary data
+# -------------------
+wins = len(bets[bets["result"] == "win"])
+losses = len(bets[bets["result"] == "loss"])
+total_profit = bets["profit"].sum()
+USERS = {"Alice": 3, "Bob": 2, "Charlie": 5}
+
+# Compute user summary
+user_summary = []
+for user, units in USERS.items():
+    user_amount = total_profit / 10 * units
+    user_summary.append((user, units, user_amount))
+
+# -------------------
+# Session state for toggling details
+# -------------------
+if "show_details" not in st.session_state:
+    st.session_state.show_details = False
+
+# -------------------
+# Summary header row
 # -------------------
 header_color = "green" if total_profit >= 0 else "red"
-summary_label = f"{wins+losses} | {wins}-{losses} | ${total_profit:.2f}"
 
-# Use the summary row itself as expander header
-with st.expander(label="", expanded=False):
-    # Add CSS to style expander header to look like summary row
-    st.markdown(
-        f"""
-        <style>
-        /* Expander header styling */
-        .streamlit-expanderHeader {{
-            font-size: 22px;
-            font-weight: bold;
-            text-align: center;
-            color: {header_color};
-            cursor: pointer;
-        }}
-        </style>
-        """, unsafe_allow_html=True
-    )
-    st.markdown(f"<div class='streamlit-expanderHeader'>{summary_label}</div>", unsafe_allow_html=True)
+col1, col2, col3 = st.columns([2,1,1])
+col1.markdown(f"<h2 style='color:black;text-align:center'>Skeet Summary</h2>", unsafe_allow_html=True)
+col2.markdown(f"<h2 style='color:black;text-align:center'>{wins}-{losses}</h2>", unsafe_allow_html=True)
 
-    # --- User breakdown lines ---
+# Amount column with small "View Details" button
+with col3:
+    st.markdown(f"<h2 style='color:{header_color};display:inline'>${total_profit:.2f}</h2>", unsafe_allow_html=True)
+    if st.button("View Details", key="view_details_btn"):
+        st.session_state.show_details = not st.session_state.show_details
+
+# -------------------
+# User breakdown (conditional)
+# -------------------
+if st.session_state.show_details:
     st.write("")  # spacing
+    st.markdown("<hr>", unsafe_allow_html=True)  # separator
+
     for name, units, user_amount in user_summary:
         color = "green" if user_amount >=0 else "red"
-        st.markdown(f"<div style='color:{color}; text-align:center'>{name} ({units} units): ${user_amount:.2f}</div>", unsafe_allow_html=True)
-
+        st.markdown(f"<div style='text-align:center'><span>{name} ({units} units): </span>"
+                    f"<span style='color:{color}'>${user_amount:.2f}</span></div>",
+                    unsafe_allow_html=True)
 
 # -----------------------------
 # Bankroll Chart
