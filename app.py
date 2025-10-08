@@ -245,6 +245,7 @@ with st.expander("➕ Add New Bet", expanded=True):
                 st.success("Bet saved!")
 
 
+
 # -----------------------------
 # Summary Stats
 # -----------------------------
