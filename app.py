@@ -247,9 +247,13 @@ total_profit = bets["profit"].sum()
 
 # USERS dict: username -> units
 USERS = {
-    "Alice": 3,
-    "Bob": 2,
-    "Charlie": 5
+    "Atodd": 1,
+    "Dree": 2,
+    "Casey": 3,
+    "Kyle": 1,
+    "Nick": 1,
+    "Ross": 1,
+    "Saucy": 1
 }
 
 # --- Compute user summary ---
@@ -317,18 +321,32 @@ col2.markdown(f"<h2 style='color:{header_color}; text-align:center;'>{wins}-{los
 
 # Right: Amount + small button inline
 with col3:
+    # Inject CSS to shrink ONLY very small buttons (global effect but intended primarily for the info button)
     st.markdown(
-        f"<div style='display:flex; justify-content:center; align-items:center;'>"
-        f"<h2 style='color:{header_color}; margin:0;'>${total_profit:.2f}</h2>"
-        f"<div style='margin-left:10px;'>",
+        """
+        <style>
+        /* Make buttons very small (used for details toggle) */
+        div.stButton > button {
+            padding: 0 4px !important;
+            font-size: 10px !important;
+            line-height: 1 !important;
+            height: 18px !important;
+            min-height: 0 !important;
+        }
+        </style>
+        """,
         unsafe_allow_html=True
     )
 
-    # Inline button
-    if st.button("View Details", key="view_details_btn"):
-        st.session_state.show_details = not st.session_state.show_details
-
-    st.markdown("</div></div>", unsafe_allow_html=True)
+    amt_col, btn_col = st.columns([12,1])
+    amt_col.markdown(
+        f"<h2 style='color:{header_color}; margin:0; display:inline-block;'>${total_profit:.2f}</h2>",
+        unsafe_allow_html=True
+    )
+    with btn_col:
+        # Use a very short label to mimic superscript / icon
+        if st.button("ⓘ", key="view_details_btn"):
+            st.session_state.show_details = not st.session_state.show_details
 
 # -------------------
 # User breakdown (conditional)
