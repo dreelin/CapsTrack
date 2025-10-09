@@ -543,7 +543,7 @@ with st.expander("Add Bet", expanded=False):
                 odds = initial_odds
                 decimalOdds = (abs(odds) / 100) + 1 if odds > 0 else (100 / abs(odds)) + 1
                 if boost > 0:
-                    odds = (decimalOdds - 1) * (boost / 100)
+                    odds = (decimalOdds - 1) * (boost / 100 + 1)
                     odds = odds * 100 if odds >= 1 else -100 / odds
 
                 profit = 0
