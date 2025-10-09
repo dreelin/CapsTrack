@@ -394,30 +394,24 @@ st.subheader("CUMulative Profit")
 
 if not bets.empty:
     bets_sorted = bets.dropna(subset=["date"]).copy()
-    bets_sorted["date"] = pd.to_datetime(bets_sorted["date"])
+    bets_sorted["date"] = pd.to_datetime(bets_sorted["date"]).dt.floor('D')  # set all times to midnight
 
-    # Group by date (day only) and compute cumulative profit
-    daily_profit = (
-        bets_sorted.groupby(bets_sorted["date"].dt.normalize())["profit"]
-        .sum()
-        .cumsum()
-        .reset_index()
-        .rename(columns={"date": "date_dt", "profit": "cumulative_profit"})
-    )
+    # Group by date, sum profit, compute cumulative sum
+    daily_profit = bets_sorted.groupby("date", as_index=False)["profit"].sum()
+    daily_profit["cumulative_profit"] = daily_profit["profit"].cumsum()
 
-    # Color column
+    # Color based on final cumulative value
+    line_color = "green" if daily_profit["cumulative_profit"].iloc[-1] >= 0 else "red"
     daily_profit["color"] = daily_profit["cumulative_profit"].apply(lambda x: "green" if x >= 0 else "red")
-
-    line_color = daily_profit["color"].iloc[-1]
 
     # Altair chart
     line = alt.Chart(daily_profit).mark_line(color=line_color, size=3).encode(
-        x=alt.X("date_dt:T", title="Date", axis=alt.Axis(format="%m/%d")),
+        x=alt.X("date:T", title="Date", axis=alt.Axis(format="%m/%d")),
         y=alt.Y("cumulative_profit:Q", title="Cumulative Profit ($)")
     )
 
     points = alt.Chart(daily_profit).mark_point(size=60).encode(
-        x="date_dt:T",
+        x="date:T",
         y="cumulative_profit:Q",
         color=alt.Color("color:N", scale=None)
     )
