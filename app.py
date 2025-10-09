@@ -343,12 +343,75 @@ def build_card_html(g):
     """
 
 # Build the row of cards
-row_html = '<div style="display:flex; overflow-x:auto; padding-bottom:10px;">'
-for g in cards_to_show:
-    row_html += build_card_html(g)
-row_html += "</div>"
+row_html = '<div style="display:flex; gap:10px;">'  # container for all cards
 
-# Render with Streamlit components
+for g in cards:
+    # Determine background and result
+    if g.get("completed"):
+        caps_won = (g["winner"] == "Washington Capitals")
+        bg_color = "#d4f4dd" if caps_won else "#f8d3d3"
+        result_text = "W" if caps_won else "L"
+    else:
+        bg_color = "#ffffff"
+        result_text = ""
+
+    away_logo = str(get_team_logo({"team": {"displayName": g["away_team"]}}, g.get("away_logo") or ""))
+    home_logo = str(get_team_logo({"team": {"displayName": g["home_team"]}}, g.get("home_logo") or ""))
+
+    away_weight = "bold" if g.get("winning_side") == "away" else "normal"
+    home_weight = "bold" if g.get("winning_side") == "home" else "normal"
+
+    score_style = "width:40px; text-align:right; font-weight:bold;"
+
+    card_html = f"""
+    <a href="{g.get('gamecast_url','#')}" target="_blank" style="text-decoration:none; color:inherit;">
+        <div style="
+            border-radius:10px;
+            border:1px solid #ccc;
+            padding:10px;
+            min-width:250px;
+            min-height:100px;
+            background-color:{bg_color};
+            color:black;
+            box-shadow:2px 2px 5px rgba(0,0,0,0.1);
+            display:flex;
+            flex-direction:column;
+            justify-content:space-between;
+            font-family:sans-serif;
+        ">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                <strong style="font-weight:bold;">{g.get('date_str','')}</strong>
+                <strong>{result_text}</strong>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; flex-direction:column;">
+                    <div style="display:flex; align-items:center; gap:5px;">
+                        <img src="{away_logo}" width="20">
+                        <span style="font-weight:{away_weight};">{g.get('away_team','')}</span>
+                    </div>
+                    <small style="color:gray; margin-top:2px;">{g.get('away_record','&nbsp;')}</small>
+                </div>
+                <div style="{score_style}">{g.get('away_score','')}</div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
+                <div style="display:flex; flex-direction:column;">
+                    <div style="display:flex; align-items:center; gap:5px;">
+                        <img src="{home_logo}" width="20">
+                        <span style="font-weight:{home_weight};">{g.get('home_team','')}</span>
+                    </div>
+                    <small style="color:gray; margin-top:2px;">{g.get('home_record','&nbsp;')}</small>
+                </div>
+                <div style="{score_style}">{g.get('home_score','')}</div>
+            </div>
+        </div>
+    </a>
+    """
+    row_html += card_html
+
+row_html += "</div>"  # close container for all cards
+
 components.html(row_html, height=180, scrolling=True)
 
 
