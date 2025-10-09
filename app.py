@@ -264,8 +264,8 @@ for i, game in enumerate(cards[:5]):
     home_logo = get_team_logo({"team": {"displayName": g["home_team"]}}, g.get("home_logo"))
 
     # Bold style for the winning team
-    home_style = "font-weight:bold;" if g.get("winning_side") == "home" else ""
-    away_style = "font-weight:bold;" if g.get("winning_side") == "away" else ""
+    home_style = "font-weight:bold;" if g["winning_side"] == "home" else ""
+    away_style = "font-weight:bold;" if g["winning_side"] == "away" else ""
 
     # Compact HTML card
     html = f"""
