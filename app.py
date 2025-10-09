@@ -508,7 +508,7 @@ with st.expander("Add Bet", expanded=False):
                         st.error("Manual game requires both Date and Game Name")
                         st.stop()
                     game_text = manual_name
-                    game_date = pd.Timestamp(manual_date.date())
+                    game_date = pd.Timestamp(manual_date)
                     game_id = ""
                 else:
                     # Find selected game in cards
