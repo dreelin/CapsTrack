@@ -334,7 +334,7 @@ for i, game in enumerate(cards[:5]):
     """
 
     # Render HTML reliably
-    components.html(html, height=150, scrolling=False, key=f"card_{i}")
+    components.html(html, height=150, scrolling=False)
 
 
 
