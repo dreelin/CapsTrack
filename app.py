@@ -620,7 +620,6 @@ if not mobile_view:
 
 
 else:
-    # Mobile cards
     for i, row in bets_display.sort_values("date", ascending=False).iterrows():
         # Determine profit color
         color = "green" if row["profit"] > 0 else "red" if row["profit"] < 0 else "gray"
@@ -630,42 +629,41 @@ else:
         for l in row["legs"]:
             legs_html += f"<span style='display:inline-block; padding:2px 8px; border-radius:12px; background:#2563eb; color:white; margin:2px; font-size:12px'>{l}</span>"
 
-        # Buttons HTML if needed
-        buttons_html = ""
-        if row["result"] == "edging" and st.session_state.auth:
-            buttons_html = (
-                f"<div style='display:flex; justify-content:space-around; margin-top:8px;'>"
-                f"<button id='win_{i}' style='flex:1; margin:0 4px'>W</button>"
-                f"<button id='loss_{i}' style='flex:1; margin:0 4px'>L</button>"
-                f"<button id='void_{i}' style='flex:1; margin:0 4px'>V</button>"
-                f"</div>"
+        # Card container
+        with st.container():
+            st.markdown(
+                f"""
+                <div style='border:1px solid #ddd; border-radius:8px; padding:10px; margin-bottom:10px; background:#f9f9f9; color:black'>
+                    <div style='font-weight:600'>{row["date_str"]} — {row["game"]}</div>
+                    <div>{legs_html}</div>
+                    <div>Odds: {row["odds"]}</div>
+                    <div>Amount: {row["amount"]}</div>
+                    <div>Result: {row["result"]}</div>
+                    <div style='color:{color}'>Profit: {row["profit_str"]}</div>
+                </div>
+                """,
+                unsafe_allow_html=True
             )
 
-        st.markdown(
-            f"""
-            <div style='border:1px solid #ddd; border-radius:8px; padding:10px; margin-bottom:10px; background:#f9f9f9; color:black'>
-                <div style='font-weight:600'>{row["date_str"]} — {row["game"]}</div>
-                <div>{legs_html}</div>
-                <div>Odds: {row["odds"]}</div>
-                <div>Amount: {row["amount"]}</div>
-                <div>Result: {row["result"]}</div>
-                <div style='color:{color}'>Profit: {row["profit_str"]}</div>
-                {buttons_html}
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-    st.markdown("<div id='user-breakdown'></div>", unsafe_allow_html=True)
-    st.markdown("<hr>", unsafe_allow_html=True)
-
-    for name, units, user_amount in user_summary:
-        color = "green" if user_amount >= 0 else "red"
-        st.markdown(
-            f"<div style='text-align:center; color:black'><span>{name} ({units} units): </span>"
-            f"<span style='color:{color}'>${user_amount:.2f}</span></div>",
-            unsafe_allow_html=True
-        )
+            # Buttons row (Streamlit buttons, works on mobile)
+            if row["result"] == "edging" and st.session_state.auth:
+                btn_cols = st.columns([1, 1, 1])
+                if btn_cols[0].button("W", key=f"win_mobile_{i}"):
+                    bets.at[i, "result"] = "win"
+                    profit = bets.at[i, "amount"] * (100 / abs(bets.at[i, "odds"])) if bets.at[i, "odds"] < 0 else bets.at[i, "amount"] * (bets.at[i, "odds"] / 100)
+                    bets.at[i, "profit"] = round(profit, 2)
+                    save_bets_to_gsheet(bets)
+                    st.experimental_rerun()
+                if btn_cols[1].button("L", key=f"loss_mobile_{i}"):
+                    bets.at[i, "result"] = "loss"
+                    bets.at[i, "profit"] = -bets.at[i, "amount"]
+                    save_bets_to_gsheet(bets)
+                    st.experimental_rerun()
+                if btn_cols[2].button("V", key=f"void_mobile_{i}"):
+                    bets.at[i, "result"] = "void"
+                    bets.at[i, "profit"] = 0
+                    save_bets_to_gsheet(bets)
+                    st.experimental_rerun()
 
 # User summary at bottom
 st.markdown("<div id='user-breakdown'></div>", unsafe_allow_html=True)
