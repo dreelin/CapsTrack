@@ -508,7 +508,7 @@ with st.expander("Add Bet", expanded=False):
                         st.error("Manual game requires both Date and Game Name")
                         st.stop()
                     game_text = manual_name
-                    game_date = manual_date
+                    game_date = pd.Timestamp(manual_date)
                     game_id = ""
                 else:
                     # Find selected game in cards
@@ -518,7 +518,7 @@ with st.expander("Add Bet", expanded=False):
                         st.error("Selected game not found")
                         st.stop()
                     game_text = f"{game_data['away_team']} vs {game_data['home_team']}"
-                    game_date = game_data["date_obj"].date()
+                    game_date = pd.Timestamp(game_data["date_obj"])
                     game_id = game_data["id"]
 
                 # Process legs
