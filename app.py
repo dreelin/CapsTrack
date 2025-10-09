@@ -222,10 +222,21 @@ cols = st.columns(5)
 # Capitals logo fixed
 caps_logo = "https://a.espncdn.com/guid/cbe677ee-361e-91b4-5cae-6c4c30044743/logos/secondary_logo_on_primary_color.png"
 
-def get_team_logo(team_name, scraped_logo):
-    if team_name == "Washington Capitals":
+@st.cache_data
+def get_team_logo(team_info, scraped_logo=None):
+    """Return logo URL (hardcoded for Caps, otherwise use scraped or fallback)."""
+    team_name = team_info["team"]["displayName"]
+
+    # Hardcoded Washington Capitals logo
+    if team_name.lower() in ["washington capitals", "capitals", "caps"]:
         return caps_logo
-    return scraped_logo or ""  # fallback if scraped_logo is missing
+
+    # Prefer scraped logo if provided
+    if scraped_logo:
+        return scraped_logo
+
+    # Default fallback
+    return "https://upload.wikimedia.org/wikipedia/commons/a/ac/No_image_available.svg"
 
 
 for i, game in enumerate(cards[:5]):
@@ -244,8 +255,8 @@ for i, game in enumerate(cards[:5]):
         result_text = ""
 
     # Logos (use hardcoded Caps logo when applicable)
-    away_logo = get_team_logo({"team": {"displayName": g["away_team"], "logos": [{"href": g.get("away_logo", "")}]}})
-    home_logo = get_team_logo({"team": {"displayName": g["home_team"], "logos": [{"href": g.get("home_logo", "")}]}})
+    away_logo = get_team_logo({"team": {"displayName": g["away_team"]}}, g.get("away_logo"))
+    home_logo = get_team_logo({"team": {"displayName": g["home_team"]}}, g.get("home_logo"))
 
     # Bold style for the winning team
     home_style = "font-weight:bold;" if g.get("winner") == "home" else ""
