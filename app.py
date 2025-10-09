@@ -403,19 +403,16 @@ if not bets.empty:
     # Get color of the latest point
     line_color = daily_profit["color"].iloc[-1] if not daily_profit.empty else "black"
 
-    # Continuous line with latest point's color
     line = alt.Chart(daily_profit).mark_line(color=line_color, size=3).encode(
-        x=alt.X("date_dt:T", title="Date"),
+        x=alt.X("date_dt:T", title="Date", axis=alt.Axis(format="%m/%d")),
         y=alt.Y("cumulative_profit:Q", title="Cumulative Profit ($)")
     )
 
-    # Points colored individually
     points = alt.Chart(daily_profit).mark_point(size=60).encode(
-        x="date_dt:T",
+        x=alt.X("date_dt:T", axis=alt.Axis(format="%m/%d")),
         y="cumulative_profit:Q",
         color=alt.Color("color:N", scale=None)
     )
-
     chart = (line + points).properties(
         width="container",
         height=300
