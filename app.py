@@ -180,26 +180,70 @@ def fetch_espn_schedule(team_id):
         resp.raise_for_status()
         events = resp.json().get("events", [])
         games = []
+
         for g in events:
             comp = g.get("competitions", [{}])[0]
-            home = comp.get("competitors", [{}])[0]
-            away = comp.get("competitors", [{}])[1]
+            competitors = comp.get("competitors", [])
+            if len(competitors) < 2:
+                continue
+
+            # Identify home and away teams correctly
+            home = next((c for c in competitors if c.get("homeAway") == "home"), {})
+            away = next((c for c in competitors if c.get("homeAway") == "away"), {})
+
             dt = datetime.fromisoformat(comp.get("date").replace("Z", "+00:00")).astimezone(EASTERN)
+
+            def extract_score(team):
+                score_data = team.get("score")
+                if isinstance(score_data, dict):
+                    return score_data.get("displayValue", "")
+                return score_data or ""
+
+            def extract_record(team):
+                records = team.get("records", [])
+                if records:
+                    return records[0].get("summary", "")
+                return ""
+
+            home_team = home.get("team", {}).get("displayName", "")
+            away_team = away.get("team", {}).get("displayName", "")
+            home_score = extract_score(home)
+            away_score = extract_score(away)
+            home_record = extract_record(home)
+            away_record = extract_record(away)
+
+            # Determine winner
+            winner = None
+            status_info = comp.get("status", {}).get("type", {})
+            if status_info.get("completed"):
+                try:
+                    if int(home_score) > int(away_score):
+                        winner = "home"
+                    elif int(away_score) > int(home_score):
+                        winner = "away"
+                except ValueError:
+                    pass
+
             games.append({
                 "id": g.get("id"),
-                "home_team": home.get("team", {}).get("displayName", ""),
-                "away_team": away.get("team", {}).get("displayName", ""),
-                "home_score": home.get("score", ""),
-                "away_score": away.get("score", ""),
-                "status_type": comp.get("status", {}).get("type", {}).get("name", "").lower(),
+                "home_team": home_team,
+                "away_team": away_team,
+                "home_score": home_score,
+                "away_score": away_score,
+                "home_record": home_record,
+                "away_record": away_record,
+                "winner": winner,
+                "status_type": status_info.get("name", "").lower(),
                 "date_obj": dt,
                 "date_str": dt.strftime("%-m/%-d %-I:%M %p ET"),
                 "gamecast_url": next((l["href"] for l in g.get("links", [])
                                       if l.get("text") == "Gamecast" and "desktop" in l.get("rel", [])), "#"),
                 "home_logo": home.get("team", {}).get("logos", [{}])[0].get("href", ""),
-                "away_logo": home.get("away", {}).get("logos", [{}])[0].get("href", ""),
+                "away_logo": away.get("team", {}).get("logos", [{}])[0].get("href", "")
             })
+
         return games
+
     except Exception as e:
         st.error(f"Failed to fetch ESPN schedule: {e}")
         return []
@@ -228,20 +272,28 @@ def get_team_logo(team_name, scraped_logo):
 
 for i, game in enumerate(cards[:5]):
     g = game
-    # Background color for past games
+
+    # Determine background color for completed games
     if g["status_type"] == "completed":
-        caps_won = ((g["home_team"] == "Washington Capitals" and int(g["home_score"]) > int(g["away_score"])) or
-                    (g["away_team"] == "Washington Capitals" and int(g["away_score"]) > int(g["home_score"])))
+        caps_won = (
+            (g["home_team"] == "Washington Capitals" and int(g["home_score"]) > int(g["away_score"])) or
+            (g["away_team"] == "Washington Capitals" and int(g["away_score"]) > int(g["home_score"]))
+        )
         bg_color = "#d4f4dd" if caps_won else "#f8d3d3"
         result_text = "W" if caps_won else "L"
     else:
         bg_color = "#ffffff"
         result_text = ""
 
-    away_logo = get_team_logo(g["away_team"], g.get("away_logo", ""))
-    home_logo = get_team_logo(g["home_team"], g.get("home_logo", ""))
+    # Logos (use hardcoded Caps logo when applicable)
+    away_logo = get_team_logo({"team": {"displayName": g["away_team"], "logos": [{"href": g.get("away_logo", "")}]}})
+    home_logo = get_team_logo({"team": {"displayName": g["home_team"], "logos": [{"href": g.get("home_logo", "")}]}})
 
+    # Bold style for the winning team
+    home_style = "font-weight:bold;" if g.get("winner") == "home" else ""
+    away_style = "font-weight:bold;" if g.get("winner") == "away" else ""
 
+    # Compact HTML card
     html = f"""
     <a href="{g['gamecast_url']}" target="_blank" style="text-decoration:none;color:inherit;">
     <div style="
@@ -255,12 +307,20 @@ for i, game in enumerate(cards[:5]):
         box-shadow:2px 2px 5px rgba(0,0,0,0.1);
     ">
         <strong>{g['date_str']} {result_text}</strong><br>
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span><img src="{away_logo}" width="20" style="vertical-align:middle; margin-right:5px;">{g['away_team']}</span>
+        <div style="display:flex; justify-content:space-between; align-items:center; {away_style}">
+            <span>
+                <img src="{away_logo}" width="20" style="vertical-align:middle; margin-right:5px;">
+                {g['away_team']}<br>
+                <small style="color:gray;">{g.get('away_record','')}</small>
+            </span>
             <span>{g['away_score']}</span>
         </div>
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span><img src="{home_logo}" width="20" style="vertical-align:middle; margin-right:5px;">{g['home_team']}</span>
+        <div style="display:flex; justify-content:space-between; align-items:center; {home_style}">
+            <span>
+                <img src="{home_logo}" width="20" style="vertical-align:middle; margin-right:5px;">
+                {g['home_team']}<br>
+                <small style="color:gray;">{g.get('home_record','')}</small>
+            </span>
             <span>{g['home_score']}</span>
         </div>
     </div>
