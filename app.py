@@ -240,6 +240,10 @@ games = fetch_espn_schedule(TEAM_ID)
 MAX_CARDS = 5  # max cards to show in one row
 past_games = [g for g in games if g["completed"] == True]
 future_games = [g for g in games if g["completed"] == False]
+cards = past_games[-2:] + future_games[:3]
+if len(cards) < 5:
+    needed = 5 - len(cards)
+    cards += future_games[3:3+needed]
 
 if future_games:
     upcoming_index = games.index(future_games[0])
