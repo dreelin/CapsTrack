@@ -267,7 +267,7 @@ def get_team_logo(team_info, scraped_logo=None):
     return "https://upload.wikimedia.org/wikipedia/commons/a/ac/No_image_available.svg"
 
 def build_card_html(g):
-    """Build HTML for a single scoreboard card."""
+    """Build HTML for a single scoreboard card with proper score/record alignment."""
     # Background and result
     if g.get("completed"):
         caps_won = (g["winner"] == "Washington Capitals")
@@ -285,9 +285,12 @@ def build_card_html(g):
     away_weight = "bold" if g.get("winning_side") == "away" else "normal"
     home_weight = "bold" if g.get("winning_side") == "home" else "normal"
 
-    # Ensure record shows a non-breaking space if empty
+    # Records
     away_record = g.get("away_record") or "&nbsp;"
     home_record = g.get("home_record") or "&nbsp;"
+
+    # Fixed width for score to align vertically
+    score_style = "width:40px; text-align:right; font-weight:bold;"
 
     return f"""
     <a href="{g.get('gamecast_url','#')}" target="_blank" style="text-decoration:none; color:inherit;">
@@ -312,28 +315,28 @@ def build_card_html(g):
                 <strong>{result_text}</strong>
             </div>
 
-            <!-- Away team -->
+            <!-- Away team row -->
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <div style="display:flex; flex-direction:column;">
-                    <span style="font-weight:{away_weight};">
-                        <img src="{away_logo}" width="20" style="vertical-align:middle; margin-right:5px;">
-                        {g.get('away_team','')}
-                    </span>
-                    <small style="color:gray; margin-top:0px;">{away_record}</small>
+                    <div style="display:flex; align-items:center; gap:5px;">
+                        <img src="{away_logo}" width="20">
+                        <span style="font-weight:{away_weight};">{g.get('away_team','')}</span>
+                    </div>
+                    <small style="color:gray; margin-top:2px;">{away_record}</small>
                 </div>
-                <span style="align-self:center;">{g.get('away_score','')}</span>
+                <div style="{score_style}">{g.get('away_score','')}</div>
             </div>
 
-            <!-- Home team -->
+            <!-- Home team row -->
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
                 <div style="display:flex; flex-direction:column;">
-                    <span style="font-weight:{home_weight};">
-                        <img src="{home_logo}" width="20" style="vertical-align:middle; margin-right:5px;">
-                        {g.get('home_team','')}
-                    </span>
-                    <small style="color:gray; margin-top:0px;">{home_record}</small>
+                    <div style="display:flex; align-items:center; gap:5px;">
+                        <img src="{home_logo}" width="20">
+                        <span style="font-weight:{home_weight};">{g.get('home_team','')}</span>
+                    </div>
+                    <small style="color:gray; margin-top:2px;">{home_record}</small>
                 </div>
-                <span style="align-self:center;">{g.get('home_score','')}</span>
+                <div style="{score_style}">{g.get('home_score','')}</div>
             </div>
         </div>
     </a>
