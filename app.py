@@ -72,12 +72,19 @@ def get_gs_client():
 def load_bets_from_gsheet():
     try:
         client = gspread.service_account_from_dict(st.secrets["gspread"])
-        sheet = client.open(SHEET_NAME).sheet1  # First worksheet
-        data = sheet.get_all_records()          # ✅ Correct method
+        sheet = client.open(SHEET_NAME).sheet1
+        data = sheet.get_all_records()
         df = pd.DataFrame(data)
+
+        expected_cols = ["date", "game", "home_team", "away_team", "legs", "odds", "amount", "result", "profit"]
+        for col in expected_cols:
+            if col not in df.columns:
+                df[col] = None  # fill missing columns
+
         if not df.empty:
             df["date"] = pd.to_datetime(df["date"], errors="coerce")
             df["legs"] = df["legs"].apply(lambda x: ast.literal_eval(x) if x else [])
+
         return df
     except Exception as e:
         st.warning(f"Failed to load bets from Google Sheet: {e}")
@@ -179,10 +186,10 @@ def fetch_espn_schedule(team_id):
             status_info = comp.get("status", {}).get("type", {})
             if status_info.get("completed"):
                 try:
-                    if home_team.get("winner"):
+                    if home.get("winner"):
                         winner = home_team
                         winning_side = "home"
-                    elif away_team.get("winner"):
+                    elif away.get("winner"):
                         winner = away_team
                         winning_side = "away"
                 except ValueError:
