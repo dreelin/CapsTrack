@@ -393,25 +393,33 @@ col3.markdown(f"<h2 style='color:{header_color}; text-align:center;'>"
 st.subheader("CUMulative Profit")
 
 if not bets.empty:
+    # Make a copy and ensure datetime
     bets_sorted = bets.dropna(subset=["date"]).copy()
-    bets_sorted["date"] = pd.to_datetime(bets_sorted["date"]).dt.floor('D')  # set all times to midnight
+    bets_sorted["date"] = pd.to_datetime(bets_sorted["date"]).dt.normalize()
 
-    # Group by date, sum profit, compute cumulative sum
-    daily_profit = bets_sorted.groupby("date", as_index=False)["profit"].sum()
+    # Group by date, sum profit, compute cumulative profit
+    daily_profit = (
+        bets_sorted.groupby("date", as_index=False)["profit"]
+        .sum()
+        .sort_values("date")
+    )
     daily_profit["cumulative_profit"] = daily_profit["profit"].cumsum()
 
-    # Color based on final cumulative value
-    line_color = "green" if daily_profit["cumulative_profit"].iloc[-1] >= 0 else "red"
+    # Line color based on last cumulative profit
+    final_color = "green" if daily_profit["cumulative_profit"].iloc[-1] >= 0 else "red"
     daily_profit["color"] = daily_profit["cumulative_profit"].apply(lambda x: "green" if x >= 0 else "red")
 
-    # Altair chart
-    line = alt.Chart(daily_profit).mark_line(color=line_color, size=3).encode(
-        x=alt.X("date:T", title="Date", axis=alt.Axis(format="%m/%d")),
+    # Convert dates to strings for categorical x-axis
+    daily_profit["date_str"] = daily_profit["date"].dt.strftime("%m/%d")
+
+    # Altair chart: line + points
+    line = alt.Chart(daily_profit).mark_line(color=final_color, size=3).encode(
+        x=alt.X("date_str:N", title="Date"),
         y=alt.Y("cumulative_profit:Q", title="Cumulative Profit ($)")
     )
 
     points = alt.Chart(daily_profit).mark_point(size=60).encode(
-        x="date:T",
+        x="date_str:N",
         y="cumulative_profit:Q",
         color=alt.Color("color:N", scale=None)
     )
