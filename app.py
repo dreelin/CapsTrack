@@ -237,6 +237,7 @@ def fetch_espn_schedule(team_id):
 # Scoreboard
 # -----------------------------
 games = fetch_espn_schedule(TEAM_ID)
+MAX_CARDS = 5  # max cards to show in one row
 past_games = [g for g in games if g["completed"] == True]
 future_games = [g for g in games if g["completed"] == False]
 cards = past_games[-2:] + future_games[:3]
@@ -266,35 +267,29 @@ def get_team_logo(team_info, scraped_logo=None):
     return "https://upload.wikimedia.org/wikipedia/commons/a/ac/No_image_available.svg"
 
 
-for i, game in enumerate(cards[:5]):
-    g = game
+# Split games into past and future
 
-    # Determine background color for completed games
-    if g["completed"] == True:
-        caps_won = (g["winner"] == "Washington Capitals")
-        bg_color = "#d4f4dd" if caps_won else "#f8d3d3"
-        result_text = "W" if caps_won else "L"
-    else:
-        bg_color = "#ffffff"
-        result_text = ""
 
-    # Logos (use hardcoded Caps logo when applicable)
-    away_logo = get_team_logo({"team": {"displayName": g["away_team"]}}, g.get("away_logo"))
-    home_logo = get_team_logo({"team": {"displayName": g["home_team"]}}, g.get("home_logo"))
+# Anchor: earliest upcoming game
+if future_games:
+    anchor_game = future_games[0]
+    anchor_idx = cards.index(anchor_game)
+else:
+    # all games are past
+    anchor_idx = len(cards) - 1
 
-    # Bold style for the winning team
-    home_style = "font-weight:bold;" if g["winning_side"] == "home" else ""
-    away_style = "font-weight:bold;" if g["winning_side"] == "away" else ""
+# Determine slice of cards to show
+start_idx = max(0, anchor_idx - 2)  # try to include 2 past games
+end_idx = min(len(cards), start_idx + MAX_CARDS)
+visible_cards = cards[start_idx:end_idx]
 
-    # Compact HTML card
-row_html = '<div style="display:flex; gap:10px;">'
+# Create dynamic columns
+cols = st.columns(len(visible_cards))
 
-for game in cards[:5]:
-    g = game
-
-    # Determine background color and result
+for i, g in enumerate(visible_cards):
+    # Background color & result
     if g.get("completed"):
-        caps_won = (g["winner"] == "Washington Capitals")
+        caps_won = (g.get("winner") == "Washington Capitals")
         bg_color = "#d4f4dd" if caps_won else "#f8d3d3"
         result_text = "W" if caps_won else "L"
     else:
@@ -309,8 +304,9 @@ for game in cards[:5]:
     away_weight = "bold" if g.get("winning_side") == "away" else "normal"
     home_weight = "bold" if g.get("winning_side") == "home" else "normal"
 
-    # Build individual card HTML
-    card_html = f"""
+    # Build HTML card
+    html = f"""
+    <a href="{g.get('gamecast_url','')}" target="_blank" style="text-decoration:none;color:inherit;">
     <div style="
         border-radius:10px;
         border:1px solid #ccc;
@@ -323,43 +319,43 @@ for game in cards[:5]:
         display:flex;
         flex-direction:column;
         justify-content:space-between;
-        font-family: sans-serif;
+        font-family:sans-serif;
     ">
+        <!-- Top row: date & result -->
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
             <strong style="font-weight:bold;">{g.get('date_str','')}</strong>
             <strong>{result_text}</strong>
         </div>
 
+        <!-- Away team row -->
         <div style="display:flex; justify-content:space-between; align-items:center;">
             <div style="display:flex; flex-direction:column;">
-                <span style="font-weight:{away_weight};">
+                <span style="font-weight:{away_weight}; display:flex; align-items:center;">
                     <img src="{away_logo}" width="20" style="vertical-align:middle; margin-right:5px;">
                     {g.get('away_team','')}
                 </span>
                 <small style="color:gray; margin-top:0px;">{g.get('away_record','&nbsp;') or '&nbsp;'}</small>
             </div>
-            <span style="align-self:center;">{g.get('away_score','')}</span>
+            <span style="font-weight:bold; align-self:center;">{g.get('away_score','')}</span>
         </div>
 
+        <!-- Home team row -->
         <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
             <div style="display:flex; flex-direction:column;">
-                <span style="font-weight:{home_weight};">
+                <span style="font-weight:{home_weight}; display:flex; align-items:center;">
                     <img src="{home_logo}" width="20" style="vertical-align:middle; margin-right:5px;">
                     {g.get('home_team','')}
                 </span>
                 <small style="color:gray; margin-top:0px;">{g.get('home_record','&nbsp;') or '&nbsp;'}</small>
             </div>
-            <span style="align-self:center;">{g.get('home_score','')}</span>
+            <span style="font-weight:bold; align-self:center;">{g.get('home_score','')}</span>
         </div>
     </div>
+    </a>
     """
-    row_html += card_html
 
-# Close the row container
-row_html += "</div>"
-
-# Render all cards in one horizontal row
-components.html(row_html, height=180, scrolling=True)
+    # Render in the appropriate column
+    cols[i].markdown(html, unsafe_allow_html=True)
 
 
 
