@@ -399,21 +399,35 @@ if not bets.empty:
     daily_profit["cumulative_profit"] = daily_profit["profit"].cumsum()
     daily_profit["color"] = daily_profit["cumulative_profit"].apply(lambda x: "green" if x >= 0 else "red")
 
-    # Altair chart: use temporal x-axis to connect points
-    chart = (
-        alt.Chart(daily_profit)
-        .mark_line(point=True)
-        .encode(
-            x=alt.X("date:T", title="Date"),  # <- temporal ensures a connected line
-            y=alt.Y("cumulative_profit:Q", title="Cumulative Profit ($)"),
-            color=alt.Color("color:N", scale=None)
-        )
-        .properties(
-            width="container",
-            height=300
-        )
-        .interactive(bind_x=False, bind_y=False)
+    # Assign a group that increments whenever color changes to allow continuous segments
+    group_id = 0
+    groups = []
+    prev_color = None
+    for c in daily_profit["color"]:
+        if c != prev_color:
+            group_id += 1
+        groups.append(group_id)
+        prev_color = c
+    daily_profit["group"] = groups
+
+    # Line segments with points
+    line = alt.Chart(daily_profit).mark_line().encode(
+        x=alt.X("date:T", title="Date"),
+        y=alt.Y("cumulative_profit:Q", title="Cumulative Profit ($)"),
+        color=alt.Color("color:N", scale=None),
+        detail="group:N"  # ensures the line segments are continuous within same color
     )
+
+    points = alt.Chart(daily_profit).mark_point(filled=True, size=60).encode(
+        x="date:T",
+        y="cumulative_profit:Q",
+        color=alt.Color("color:N", scale=None)
+    )
+
+    chart = (line + points).properties(
+        width="container",
+        height=300
+    ).interactive(bind_x=False, bind_y=False)
 
     st.altair_chart(chart, use_container_width=True)
 else:
