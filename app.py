@@ -68,19 +68,22 @@ def get_gs_client():
 # Load bets
 def load_bets_from_gsheet():
     try:
-        client = gspread.service_account_from_dict(st.secrets["gspread"])
+        client = get_gs_client()
         sheet = client.open(SHEET_NAME).sheet1
         data = sheet.get_all_records()
         df = pd.DataFrame(data)
 
-        expected_cols = ["date", "game", "home_team", "away_team", "legs", "odds", "amount", "result", "profit"]
-        for col in expected_cols:
-            if col not in df.columns:
-                df[col] = None  # fill missing columns
-
         if not df.empty:
+            # Convert 'date' back to datetime
             df["date"] = pd.to_datetime(df["date"], errors="coerce")
+
+            # Convert 'legs' back to list
             df["legs"] = df["legs"].apply(lambda x: ast.literal_eval(x) if x else [])
+
+            # Ensure numeric columns are floats and fill NaN with 0
+            for col in ["odds", "amount", "profit"]:
+                if col in df.columns:
+                    df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
 
         return df
     except Exception as e:
