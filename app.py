@@ -356,11 +356,25 @@ components.html(row_html, height=180, scrolling=True)
 
 
 # -------------------
-# summary data
+# Ensure required columns exist
 # -------------------
-wins = len(bets[bets["result"] == "win"])
-losses = len(bets[bets["result"] == "loss"])
-total_profit = bets["profit"].sum()
+required_cols = ["date", "game", "home_team", "away_team",
+                                     "legs", "odds", "amount", "result", "profit"]
+for col in required_cols:
+    if col not in bets.columns:
+        bets[col] = pd.Series(dtype=object)  # or float for numeric columns
+
+# -------------------
+# summary data (safe)
+# -------------------
+if not bets.empty:
+    wins = len(bets[bets["result"] == "win"])
+    losses = len(bets[bets["result"] == "loss"])
+    total_profit = bets["profit"].sum()
+else:
+    wins = 0
+    losses = 0
+    total_profit = 0.0
 
 
 # Compute user summary
