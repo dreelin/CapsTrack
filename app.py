@@ -93,9 +93,16 @@ def save_bets_to_gsheet(df):
     try:
         client = get_gs_client()
         sheet = client.open(SHEET_NAME).sheet1
+
         # Convert DataFrame to list of lists for gspread
         df_to_save = df.copy()
         df_to_save["legs"] = df_to_save["legs"].apply(str)
+
+        # Convert dates to string
+        if "date" in df_to_save.columns:
+            df_to_save["date"] = df_to_save["date"].apply(lambda d: d.strftime("%Y-%m-%d") if pd.notnull(d) else "")
+
+        # Clear and update sheet
         sheet.clear()
         sheet.update([df_to_save.columns.values.tolist()] + df_to_save.values.tolist())
     except Exception as e:
