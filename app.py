@@ -302,35 +302,32 @@ for i, game in enumerate(cards[:5]):
         justify-content:space-between;
     ">
 
-    <!-- Top row: date and result -->
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-        <strong style="font-weight:normal;">{g['date_str']}</strong>
-        <strong>{result_text}</strong>
-    </div>
-
-    <!-- Away team row -->
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div style="display:flex; flex-direction:column;">
-            <span style="font-weight:{'bold' if g['winning_side']=='away' else 'normal'};">
-                <img src="{away_logo}" width="20" style="vertical-align:middle; margin-right:5px;">
-                {g['away_team']}
-            </span>
-            <small style="color:gray; margin-top:0px;">{g.get('away_record','&nbsp;') or '&nbsp;'}</small>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+            <strong style="font-weight:normal;">{g['date_str']}</strong>
+            <strong>{result_text}</strong>
         </div>
-        <span style="align-self:center;">{g['away_score']}</span>
-    </div>
 
-    <!-- Home team row -->
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
-        <div style="display:flex; flex-direction:column;">
-            <span style="font-weight:{'bold' if g['winning_side']=='home' else 'normal'};">
-                <img src="{home_logo}" width="20" style="vertical-align:middle; margin-right:5px;">
-                {g['home_team']}
-            </span>
-            <small style="color:gray; margin-top:0px;">{g.get('home_record','&nbsp;') or '&nbsp;'}</small>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="display:flex; flex-direction:column;">
+                <span style="font-weight:{'bold' if g['winning_side']=='away' else 'normal'};">
+                    <img src="{away_logo}" width="20" style="vertical-align:middle; margin-right:5px;">
+                    {g['away_team']}
+                </span>
+                <small style="color:gray; margin-top:0px;">{g.get('away_record','&nbsp;') or '&nbsp;'}</small>
+            </div>
+            <span style="align-self:center;">{g['away_score']}</span>
         </div>
-        <span style="align-self:center;">{g['home_score']}</span>
-    </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
+            <div style="display:flex; flex-direction:column;">
+                <span style="font-weight:{'bold' if g['winning_side']=='home' else 'normal'};">
+                    <img src="{home_logo}" width="20" style="vertical-align:middle; margin-right:5px;">
+                    {g['home_team']}
+                </span>
+                <small style="color:gray; margin-top:0px;">{g.get('home_record','&nbsp;') or '&nbsp;'}</small>
+            </div>
+            <span style="align-self:center;">{g['home_score']}</span>
+        </div>
 
     </div>
     </a>"""
