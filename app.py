@@ -629,8 +629,9 @@ else:
         for l in row["legs"]:
             legs_html += f"<span style='display:inline-block; padding:2px 8px; border-radius:12px; background:#2563eb; color:white; margin:2px; font-size:12px'>{l}</span>"
 
-        # Card container
+        # Create container for the card
         with st.container():
+            # Card content as markdown
             st.markdown(
                 f"""
                 <div style='border:1px solid #ddd; border-radius:8px; padding:10px; margin-bottom:10px; background:#f9f9f9; color:black'>
@@ -645,25 +646,25 @@ else:
                 unsafe_allow_html=True
             )
 
-            # Buttons row (Streamlit buttons, works on mobile)
+            # Buttons inside the same container
             if row["result"] == "edging" and st.session_state.auth:
-                btn_cols = st.columns([1, 1, 1])
+                btn_cols = st.columns([1,1,1])
                 if btn_cols[0].button("W", key=f"win_mobile_{i}"):
                     bets.at[i, "result"] = "win"
                     profit = bets.at[i, "amount"] * (100 / abs(bets.at[i, "odds"])) if bets.at[i, "odds"] < 0 else bets.at[i, "amount"] * (bets.at[i, "odds"] / 100)
                     bets.at[i, "profit"] = round(profit, 2)
                     save_bets_to_gsheet(bets)
-                    st.experimental_rerun()
+                    st.rerun()
                 if btn_cols[1].button("L", key=f"loss_mobile_{i}"):
                     bets.at[i, "result"] = "loss"
                     bets.at[i, "profit"] = -bets.at[i, "amount"]
                     save_bets_to_gsheet(bets)
-                    st.experimental_rerun()
+                    st.rerun()
                 if btn_cols[2].button("V", key=f"void_mobile_{i}"):
                     bets.at[i, "result"] = "void"
                     bets.at[i, "profit"] = 0
                     save_bets_to_gsheet(bets)
-                    st.experimental_rerun()
+                    st.rerun()
 
 # User summary at bottom
 st.markdown("<div id='user-breakdown'></div>", unsafe_allow_html=True)
