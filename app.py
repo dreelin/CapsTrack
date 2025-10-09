@@ -175,13 +175,16 @@ def fetch_espn_schedule(team_id):
 
             # Determine winner
             winner = None
+            winning_side = None
             status_info = comp.get("status", {}).get("type", {})
             if status_info.get("completed"):
                 try:
                     if home_team.get("winner"):
                         winner = home_team
+                        winning_side = "home"
                     elif away_team.get("winner"):
                         winner = away_team
+                        winning_side = "away"
                 except ValueError:
                     pass
 
@@ -194,6 +197,7 @@ def fetch_espn_schedule(team_id):
                 "home_record": home_record,
                 "away_record": away_record,
                 "winner": winner,
+                "winning_side": winning_side,
                 "completed": status_info.get("completed", False),
                 "status_type": status_info.get("description", ""),
                 "date_obj": dt,
@@ -260,8 +264,8 @@ for i, game in enumerate(cards[:5]):
     home_logo = get_team_logo({"team": {"displayName": g["home_team"]}}, g.get("home_logo"))
 
     # Bold style for the winning team
-    home_style = "font-weight:bold;" if g.get("winner") == "home" else ""
-    away_style = "font-weight:bold;" if g.get("winner") == "away" else ""
+    home_style = "font-weight:bold;" if g.get("winning_side") == "home" else ""
+    away_style = "font-weight:bold;" if g.get("winning_side") == "away" else ""
 
     # Compact HTML card
     html = f"""
@@ -276,7 +280,7 @@ for i, game in enumerate(cards[:5]):
         color:black;
         box-shadow:2px 2px 5px rgba(0,0,0,0.1);
     ">
-        <strong>{g['date_str']} {result_text}</strong><br>
+        <strong>{g['date_str']} {result_text} lt </strong><br>
         <div style="display:flex; justify-content:space-between; align-items:center; {away_style}">
             <span>
                 <img src="{away_logo}" width="20" style="vertical-align:middle; margin-right:5px;">
