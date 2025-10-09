@@ -9,7 +9,7 @@ from streamlit_cookies_manager import EncryptedCookieManager
 import ast
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-
+from streamlit import components
 
 st.set_page_config(page_title="Caps Bet Tracker", layout="wide", initial_sidebar_state="collapsed")
 
@@ -337,7 +337,7 @@ for i, game in enumerate(cards[:5]):
         </div>
         </a>
         """
-    cols[i].markdown(html, unsafe_allow_html=True)
+    components.html(html, height=150)
 
 
 
