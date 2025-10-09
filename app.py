@@ -94,13 +94,18 @@ def save_bets_to_gsheet(df):
         client = get_gs_client()
         sheet = client.open(SHEET_NAME).sheet1
 
-        # Convert DataFrame to list of lists for gspread
+        # Copy DataFrame
         df_to_save = df.copy()
+
+        # Convert legs to string
         df_to_save["legs"] = df_to_save["legs"].apply(str)
 
         # Convert dates to string
         if "date" in df_to_save.columns:
             df_to_save["date"] = df_to_save["date"].apply(lambda d: d.strftime("%Y-%m-%d") if pd.notnull(d) else "")
+
+        # Replace NaNs in all columns with empty string
+        df_to_save = df_to_save.fillna("")
 
         # Clear and update sheet
         sheet.clear()
