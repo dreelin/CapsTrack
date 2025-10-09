@@ -497,7 +497,7 @@ with st.expander("Add Bet", expanded=False):
         with col_odds:
             initial_odds = st.number_input("Odds (American)", value=-110)
         with col_boost:
-            boost = st.number_input("Boost %", value=0, min_value=0, max_value=300 step=1)
+            boost = st.number_input("Boost %", value=0, min_value=0, max_value=300, step=1)
         with col_amount:
             amount = st.number_input("Amount ($)", value=69.0)
         with col_result:
