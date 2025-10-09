@@ -395,29 +395,34 @@ st.subheader("CUMulative Profit")
 if not bets.empty:
     bets_sorted = bets.dropna(subset=["date"]).copy()
     bets_sorted["date"] = pd.to_datetime(bets_sorted["date"])
-    daily_profit = bets_sorted.groupby(bets_sorted["date"].dt.date)["profit"].sum().reset_index()
-    daily_profit["cumulative_profit"] = daily_profit["profit"].cumsum()
+
+    # Group by date (day only) and compute cumulative profit
+    daily_profit = (
+        bets_sorted.groupby(bets_sorted["date"].dt.normalize())["profit"]
+        .sum()
+        .cumsum()
+        .reset_index()
+        .rename(columns={"date": "date_dt", "profit": "cumulative_profit"})
+    )
+
+    # Color column
     daily_profit["color"] = daily_profit["cumulative_profit"].apply(lambda x: "green" if x >= 0 else "red")
-    daily_profit["date_dt"] = pd.to_datetime(daily_profit["date"])
 
-    # Get color of the latest point
-    line_color = daily_profit["color"].iloc[-1] if not daily_profit.empty else "black"
+    line_color = daily_profit["color"].iloc[-1]
 
+    # Altair chart
     line = alt.Chart(daily_profit).mark_line(color=line_color, size=3).encode(
         x=alt.X("date_dt:T", title="Date", axis=alt.Axis(format="%m/%d")),
         y=alt.Y("cumulative_profit:Q", title="Cumulative Profit ($)")
     )
 
     points = alt.Chart(daily_profit).mark_point(size=60).encode(
-        x=alt.X("date_dt:T", axis=alt.Axis(format="%m/%d")),
+        x="date_dt:T",
         y="cumulative_profit:Q",
         color=alt.Color("color:N", scale=None)
     )
-    chart = (line + points).properties(
-        width="container",
-        height=300
-    ).interactive(bind_x=False, bind_y=False)  # disables zoom/pan
 
+    chart = (line + points).properties(height=300, width="container").interactive(bind_x=False, bind_y=False)
     st.altair_chart(chart, use_container_width=True)
 else:
     st.info("Still edging...")
