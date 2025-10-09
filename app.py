@@ -90,7 +90,7 @@ def load_bets_from_gsheet():
     except Exception as e:
         st.warning(f"Failed to load bets from Google Sheet: {e}")
         return pd.DataFrame(columns=["date", "game", "home_team", "away_team",
-                                     "legs", "odds", "amount", "result", "profit"])
+                                     "legs", "odds", "initial_odds", "boost", "amount", "result", "profit"])
 
 # Save bets
 def save_bets_to_gsheet(df):
@@ -359,7 +359,7 @@ components.html(row_html, height=180, scrolling=True)
 # Ensure required columns exist
 # -------------------
 required_cols = ["date", "game", "home_team", "away_team",
-                                     "legs", "odds", "amount", "result", "profit"]
+                                     "legs", "odds", "initial_odds", "boost", "amount", "result", "profit"]
 for col in required_cols:
     if col not in bets.columns:
         bets[col] = pd.Series(dtype=object)  # or float for numeric columns
@@ -493,9 +493,11 @@ with st.expander("Add Bet", expanded=False):
         # ---------------------
         # Odds / Amount / Result
         # ---------------------
-        col_odds, col_amount, col_result = st.columns([1,1,1])
+        col_odds, col_boost, col_amount, col_result = st.columns([1,1,1])
         with col_odds:
-            odds = st.number_input("Odds (American)", value=-110)
+            initial_odds = st.number_input("Odds (American)", value=-110)
+        with col_boost:
+            boost = st.number_input("Boost %", value=0, min_value=0, max_value=300, value=0, step=1)
         with col_amount:
             amount = st.number_input("Amount ($)", value=69.0)
         with col_result:
@@ -538,11 +540,19 @@ with st.expander("Add Bet", expanded=False):
                 # Process legs
                 legs_list = [l.strip() for l in legs_text.split("\n") if l.strip()]
 
+                odds = initial_odds
+                decimalOdds = (abs(odds) / 100) + 1 if odds > 0 else (100 / abs(odds)) + 1
+                if boost > 0:
+                    odds = (decimalOdds - 1) * boost
+                    odds = odds * 100 if odds >= 1 else -100 / odds
+
                 profit = 0
                 if result == "win":
                     profit = amount * (100 / abs(odds)) if odds < 0 else amount * (odds / 100)
                 elif result == "loss":
                     profit = -amount
+
+
 
                 # Save
                 new_row = {
@@ -551,6 +561,8 @@ with st.expander("Add Bet", expanded=False):
                     "game_id": game_id,
                     "legs": legs_list,
                     "odds": odds,
+                    "initial_odds": initial_odds,
+                    "boost": boost,
                     "amount": amount,
                     "result": result,
                     "profit": profit
@@ -588,8 +600,8 @@ mobile_view = params.get("mobile", ["0"])[0] == "1"
 
 if not mobile_view:
     # ----- DESKTOP TABLE VIEW -----
-    header_cols = st.columns([1, 3, 3, 1, 1, 1, 1, 1])
-    header_titles = ["Date", "Game", "Legs", "Odds", "Amount", "Result", "Profit", "Settle Bet"]
+    header_cols = st.columns([1, 3, 3, 1, 1, 1, 1, 1, 1])
+    header_titles = ["Date", "Game", "Legs", "Odds", "Boost", "Amount", "Result", "Profit", "Settle Bet"]
     for col, title in zip(header_cols, header_titles):
         col.markdown(f"**{title}**", unsafe_allow_html=True)
 
@@ -605,14 +617,15 @@ if not mobile_view:
         )
         cols[2].markdown(legs_html, unsafe_allow_html=True)
         cols[3].markdown(row["odds"])
-        cols[4].markdown(row["amount"])
-        cols[5].markdown(row["result"])
+        cols[4].markdown(row["boost"])
+        cols[5].markdown(row["amount"])
+        cols[6].markdown(row["result"])
         color = "green" if row["profit"] > 0 else "red" if row["profit"] < 0 else "gray"
-        cols[6].markdown(f"<span style='color:{color}'>{row['profit_str']}</span>", unsafe_allow_html=True)
+        cols[7].markdown(f"<span style='color:{color}'>{row['profit_str']}</span>", unsafe_allow_html=True)
 
         # Settle buttons
         if row["result"] == "edging" and st.session_state.auth:
-            settle_col = cols[7]
+            settle_col = cols[8]
             btn_cols = settle_col.columns([1,1,1])
             
             if btn_cols[0].button("W", key=f"win_{i}"):
