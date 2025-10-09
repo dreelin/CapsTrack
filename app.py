@@ -398,8 +398,9 @@ if not bets.empty:
     daily_profit = bets_sorted.groupby(bets_sorted["date"].dt.date)["profit"].sum().reset_index()
     daily_profit["cumulative_profit"] = daily_profit["profit"].cumsum()
     daily_profit["color"] = daily_profit["cumulative_profit"].apply(lambda x: "green" if x >= 0 else "red")
+    daily_profit["date_dt"] = pd.to_datetime(daily_profit["date"])  # ensure temporal type
 
-    # Assign a group that increments whenever color changes to allow continuous segments
+    # Assign a group that increments whenever color changes
     group_id = 0
     groups = []
     prev_color = None
@@ -410,26 +411,15 @@ if not bets.empty:
         prev_color = c
     daily_profit["group"] = groups
 
-    # Line segments with points
-    line = alt.Chart(daily_profit).mark_line().encode(
-        x=alt.X("date:T", title="Date"),
+    # Line segments
+    line = alt.Chart(daily_profit).mark_line(point=True, size=3).encode(
+        x=alt.X("date_dt:T", title="Date"),
         y=alt.Y("cumulative_profit:Q", title="Cumulative Profit ($)"),
         color=alt.Color("color:N", scale=None),
-        detail="group:N"  # ensures the line segments are continuous within same color
+        detail="group:N"  # keeps line continuous within same color
     )
 
-    points = alt.Chart(daily_profit).mark_point(filled=True, size=60).encode(
-        x="date:T",
-        y="cumulative_profit:Q",
-        color=alt.Color("color:N", scale=None)
-    )
-
-    chart = (line + points).properties(
-        width="container",
-        height=300
-    ).interactive(bind_x=False, bind_y=False)
-
-    st.altair_chart(chart, use_container_width=True)
+    st.altair_chart(line.properties(width="container", height=300).interactive(bind_x=False, bind_y=False), use_container_width=True)
 else:
     st.info("Still edging...")
 
