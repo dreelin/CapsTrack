@@ -288,37 +288,55 @@ for i, game in enumerate(cards[:5]):
 
     # Compact HTML card
     html = f"""
-    <a href="{g['gamecast_url']}" target="_blank" style="text-decoration:none;color:inherit;">
-    <div style="
-        border-radius:10px;
-        border:1px solid #ccc;
-        padding:10px;
-        margin:5px;
-        width:250px;
-        background-color:{bg_color};
-        color:black;
-        box-shadow:2px 2px 5px rgba(0,0,0,0.1);
-    ">
-        <strong>{g['date_str']} {result_text} lt </strong><br>
-        <div style="display:flex; justify-content:space-between; align-items:center; {away_style}">
-            <span>
-                <img src="{away_logo}" width="20" style="vertical-align:middle; margin-right:5px;">
-                {g['away_team']}<br>
-                <small style="color:gray;">{g.get('away_record','')}</small>
-            </span>
-            <span>{g['away_score']}</span>
+        <a href="{g['gamecast_url']}" target="_blank" style="text-decoration:none;color:inherit;">
+        <div style="
+            border-radius:10px;
+            border:1px solid #ccc;
+            padding:10px;
+            margin:5px;
+            width:250px;
+            min-height:100px;
+            background-color:{bg_color};
+            color:black;
+            box-shadow:2px 2px 5px rgba(0,0,0,0.1);
+            display:flex;
+            flex-direction:column;
+            justify-content:space-between;
+        ">
+
+            <!-- Top row: date and result -->
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                <strong style="font-weight:normal;">{g['date_str']}</strong>
+                <strong>{result_text}</strong>
+            </div>
+
+            <!-- Away team row -->
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; flex-direction:column;">
+                    <span style="font-weight:{'bold' if g['winning_side']=='away' else 'normal'};">
+                        <img src="{away_logo}" width="20" style="vertical-align:middle; margin-right:5px;">
+                        {g['away_team']}
+                    </span>
+                    <small style="color:gray; margin-top:0px;">{g.get('away_record','&nbsp;') or '&nbsp;'}</small>
+                </div>
+                <span style="align-self:center;">{g['away_score']}</span>
+            </div>
+
+            <!-- Home team row -->
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
+                <div style="display:flex; flex-direction:column;">
+                    <span style="font-weight:{'bold' if g['winning_side']=='home' else 'normal'};">
+                        <img src="{home_logo}" width="20" style="vertical-align:middle; margin-right:5px;">
+                        {g['home_team']}
+                    </span>
+                    <small style="color:gray; margin-top:0px;">{g.get('home_record','&nbsp;') or '&nbsp;'}</small>
+                </div>
+                <span style="align-self:center;">{g['home_score']}</span>
+            </div>
+
         </div>
-        <div style="display:flex; justify-content:space-between; align-items:center; {home_style}">
-            <span>
-                <img src="{home_logo}" width="20" style="vertical-align:middle; margin-right:5px;">
-                {g['home_team']}<br>
-                <small style="color:gray;">{g.get('home_record','')}</small>
-            </span>
-            <span>{g['home_score']}</span>
-        </div>
-    </div>
-    </a>
-    """
+        </a>
+        """
     cols[i].markdown(html, unsafe_allow_html=True)
 
 
