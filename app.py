@@ -493,7 +493,7 @@ with st.expander("Add Bet", expanded=False):
         # ---------------------
         # Odds / Amount / Result
         # ---------------------
-        col_odds, col_boost, col_amount, col_result = st.columns([1,1,1])
+        col_odds, col_boost, col_amount, col_result = st.columns([1,1,1,1])
         with col_odds:
             initial_odds = st.number_input("Odds (American)", value=-110)
         with col_boost:
