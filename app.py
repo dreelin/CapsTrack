@@ -549,19 +549,17 @@ with st.expander("Add Bet", expanded=False):
 # -----------------------------
 # Bet History
 # -----------------------------
-st.subheader("69 Logss")
+st.subheader("69 Logs")
 
 def parse_legs(x):
     if isinstance(x, list):
         return x
     try:
-        # Try to parse string representation of list
         parsed = ast.literal_eval(x)
         if isinstance(parsed, list):
             return parsed
         return [str(parsed)]
     except Exception:
-        # Fallback: split by comma
         return [s.strip() for s in str(x).split(",")]
 
 bets_display = bets.copy()
@@ -571,69 +569,111 @@ bets_display["legs"] = bets_display["legs"].apply(parse_legs)
 bets_display["date_str"] = bets_display["date"].apply(lambda d: d.strftime("%m/%d/%Y") if pd.notnull(d) else "")
 bets_display["profit_str"] = bets_display["profit"].apply(lambda p: f"${p:.2f}")
 
-# Header row
-header_cols = st.columns([1, 3, 3, 1, 1, 1, 1, 1])
-header_titles = ["Date", "Game", "Legs", "Odds", "Amount", "Result", "Profit", "Settle Bet"]
-for col, title in zip(header_cols, header_titles):
-    col.markdown(f"**{title}**", unsafe_allow_html=True)
+# Simple responsive check: assume mobile if screen width < 600px
+# Streamlit doesn't give screen width directly, so you can toggle manually for testing
+mobile_view = st.session_state.get("mobile_view", False)
 
-# Build table manually
-for i, row in bets_display.sort_values("date", ascending=False).iterrows():
-    cols = st.columns([1, 3, 3, 1, 1, 1, 1, 1])  # Adjust widths
-    
-    # Date
-    cols[0].markdown(row["date_str"])
-    
-    # Game
-    cols[1].markdown(row["game"])
-    
-    # Legs as pills (colored for readability)
-    legs_html = ""
-    for l in row["legs"]:
-        legs_html += f"<span style='display:inline-block; padding:2px 8px; border-radius:12px; background:#2563eb; color:white; margin:2px; font-size:12px'>{l}</span>"
-    cols[2].markdown(legs_html, unsafe_allow_html=True)
-    
-    # Odds, amount, result, profit
-    cols[3].markdown(row["odds"])
-    cols[4].markdown(row["amount"])
-    cols[5].markdown(row["result"])
-    color = "green" if row["profit"] > 0 else "red" if row["profit"] < 0 else "gray"
-    cols[6].markdown(f"<span style='color:{color}'>{row["profit_str"]}</span>", unsafe_allow_html=True)
-    
-    # Settle Bet buttons
-    if row["result"] == "edging" and st.session_state.auth:
-        settle_col = cols[7]
-        btn_cols = settle_col.columns([1,1,1])
+if not mobile_view:
+    # ----- DESKTOP TABLE VIEW -----
+    header_cols = st.columns([1, 3, 3, 1, 1, 1, 1, 1])
+    header_titles = ["Date", "Game", "Legs", "Odds", "Amount", "Result", "Profit", "Settle Bet"]
+    for col, title in zip(header_cols, header_titles):
+        col.markdown(f"**{title}**", unsafe_allow_html=True)
+
+    for i, row in bets_display.sort_values("date", ascending=False).iterrows():
+        cols = st.columns([1, 3, 3, 1, 1, 1, 1, 1])
+        cols[0].markdown(row["date_str"])
+        cols[1].markdown(row["game"])
+        # Legs as pills
+        legs_html = "".join(
+            f"<span style='display:inline-block; padding:2px 8px; border-radius:12px; "
+            f"background:#2563eb; color:white; margin:2px; font-size:12px'>{l}</span>"
+            for l in row["legs"]
+        )
+        cols[2].markdown(legs_html, unsafe_allow_html=True)
+        cols[3].markdown(row["odds"])
+        cols[4].markdown(row["amount"])
+        cols[5].markdown(row["result"])
+        color = "green" if row["profit"] > 0 else "red" if row["profit"] < 0 else "gray"
+        cols[6].markdown(f"<span style='color:{color}'>{row['profit_str']}</span>", unsafe_allow_html=True)
+
+        # Settle buttons
+        if row["result"] == "edging" and st.session_state.auth:
+            settle_col = cols[7]
+            btn_cols = settle_col.columns([1,1,1])
+            
+            if btn_cols[0].button("W", key=f"win_{i}"):
+                bets.at[i, "result"] = "win"
+                profit = bets.at[i, "amount"] * (100 / abs(bets.at[i, "odds"])) if bets.at[i, "odds"] < 0 else bets.at[i, "amount"] * (bets.at[i, "odds"] / 100)
+                bets.at[i, "profit"] = round(profit, 2)
+                save_bets_to_gsheet(bets)
+                st.rerun()
+            if btn_cols[1].button("L", key=f"loss_{i}"):
+                bets.at[i, "result"] = "loss"
+                bets.at[i, "profit"] = -bets.at[i, "amount"]
+                save_bets_to_gsheet(bets)
+                st.rerun()
+            if btn_cols[2].button("V", key=f"void_{i}"):
+                bets.at[i, "result"] = "void"
+                bets.at[i, "profit"] = 0
+                save_bets_to_gsheet(bets)
+                st.rerun()
+
+else:
+    # ----- MOBILE CARD VIEW -----
+    for i, row in bets_display.sort_values("date", ascending=False).iterrows():
+        color = "green" if row["profit"] > 0 else "red" if row["profit"] < 0 else "gray"
+        legs_html = "".join(
+            f"<span style='display:inline-block; padding:2px 6px; border-radius:12px; "
+            f"background:#2563eb; color:white; margin:2px; font-size:12px'>{l}</span>"
+            for l in row["legs"]
+        )
+        st.markdown(f"""
+        <div style="
+            border:1px solid #ccc;
+            border-radius:10px;
+            padding:10px;
+            margin-bottom:8px;
+            background:#f9f9f9;
+        ">
+            <div style="display:flex; justify-content:space-between; font-weight:bold">
+                <span>{row['date_str']}</span>
+                <span style="color:{color}">{row['profit_str']}</span>
+            </div>
+            <div>Game: {row['game']}</div>
+            <div>Legs: {legs_html}</div>
+            <div>Odds: {row['odds']}, Amount: {row['amount']}, Result: {row['result']}</div>
+        """, unsafe_allow_html=True)
+
+        # Settle buttons
+        if row["result"] == "edging" and st.session_state.auth:
+            btn_cols = st.columns([1,1,1])
+            if btn_cols[0].button("W", key=f"win_{i}"):
+                bets.at[i, "result"] = "win"
+                profit = bets.at[i, "amount"] * (100 / abs(bets.at[i, "odds"])) if bets.at[i, "odds"] < 0 else bets.at[i, "amount"] * (bets.at[i, "odds"] / 100)
+                bets.at[i, "profit"] = round(profit, 2)
+                save_bets_to_gsheet(bets)
+                st.rerun()
+            if btn_cols[1].button("L", key=f"loss_{i}"):
+                bets.at[i, "result"] = "loss"
+                bets.at[i, "profit"] = -bets.at[i, "amount"]
+                save_bets_to_gsheet(bets)
+                st.rerun()
+            if btn_cols[2].button("V", key=f"void_{i}"):
+                bets.at[i, "result"] = "void"
+                bets.at[i, "profit"] = 0
+                save_bets_to_gsheet(bets)
+                st.rerun()
         
-        # Win button
-        if btn_cols[0].button("W", key=f"win_{i}"):
-            bets.at[i, "result"] = "win"
-            profit = bets.at[i, "amount"] * (100 / abs(bets.at[i, "odds"])) if bets.at[i, "odds"] < 0 else bets.at[i, "amount"] * (bets.at[i, "odds"] / 100)
-            bets.at[i, "profit"] = round(profit,2)
-            save_bets_to_gsheet(bets)
-            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
 
-        # Loss button
-        if btn_cols[1].button("L", key=f"loss_{i}"):
-            bets.at[i, "result"] = "loss"
-            bets.at[i, "profit"] = -bets.at[i, "amount"]
-            save_bets_to_gsheet(bets)
-            st.rerun()
-        
-        # Void button
-        if btn_cols[2].button("V", key=f"void_{i}"):
-            bets.at[i, "result"] = "void"
-            bets.at[i, "profit"] = 0
-            save_bets_to_gsheet(bets)
-            st.rerun()
-
+# User summary at bottom
 st.markdown("<div id='user-breakdown'></div>", unsafe_allow_html=True)
 st.markdown("<hr>", unsafe_allow_html=True)
-
 for name, units, user_amount in user_summary:
     color = "green" if user_amount >= 0 else "red"
     st.markdown(
         f"<div style='text-align:center'><span>{name} ({units} units): </span>"
         f"<span style='color:{color}'>${user_amount:.2f}</span></div>",
         unsafe_allow_html=True
-    ) 
+    )
