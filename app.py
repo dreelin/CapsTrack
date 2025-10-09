@@ -569,9 +569,8 @@ bets_display["legs"] = bets_display["legs"].apply(parse_legs)
 bets_display["date_str"] = bets_display["date"].apply(lambda d: d.strftime("%m/%d/%Y") if pd.notnull(d) else "")
 bets_display["profit_str"] = bets_display["profit"].apply(lambda p: f"${p:.2f}")
 
-# Simple responsive check: assume mobile if screen width < 600px
-# Streamlit doesn't give screen width directly, so you can toggle manually for testing
-mobile_view = st.session_state.get("mobile_view", False)
+params = st.experimental_get_query_params()
+mobile_view = params.get("mobile", ["0"])[0] == "1"
 
 if not mobile_view:
     # ----- DESKTOP TABLE VIEW -----
