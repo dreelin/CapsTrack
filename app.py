@@ -393,38 +393,26 @@ col3.markdown(f"<h2 style='color:{header_color}; text-align:center;'>"
 st.subheader("CUMulative Profit")
 
 if not bets.empty:
-    # Drop bets without a date
     bets_sorted = bets.dropna(subset=["date"]).copy()
-
-    # Ensure 'date' is datetime
     bets_sorted["date"] = pd.to_datetime(bets_sorted["date"])
-
-    # Group by date (ignore time) and sum profit per day
     daily_profit = bets_sorted.groupby(bets_sorted["date"].dt.date)["profit"].sum().reset_index()
-
-    # Compute cumulative profit
     daily_profit["cumulative_profit"] = daily_profit["profit"].cumsum()
-
-    # Format date as mm/dd for x-axis
-    daily_profit["date_str"] = daily_profit["date"].apply(lambda d: d.strftime("%m/%d"))
-
-    # Add color column based on positive/negative
     daily_profit["color"] = daily_profit["cumulative_profit"].apply(lambda x: "green" if x >= 0 else "red")
 
-    # Altair chart (colored line with points, no zoom)
+    # Altair chart: use temporal x-axis to connect points
     chart = (
         alt.Chart(daily_profit)
         .mark_line(point=True)
         .encode(
-            x=alt.X("date_str:N", title="Date"),
+            x=alt.X("date:T", title="Date"),  # <- temporal ensures a connected line
             y=alt.Y("cumulative_profit:Q", title="Cumulative Profit ($)"),
-            color=alt.Color("color:N", scale=None)  # use the color column directly
+            color=alt.Color("color:N", scale=None)
         )
         .properties(
             width="container",
             height=300
         )
-        .interactive(bind_x=False, bind_y=False)  # disables zoom/pan
+        .interactive(bind_x=False, bind_y=False)
     )
 
     st.altair_chart(chart, use_container_width=True)
