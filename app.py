@@ -606,7 +606,7 @@ if not mobile_view:
         col.markdown(f"**{title}**", unsafe_allow_html=True)
 
     for i, row in bets_display.sort_values("date", ascending=False).iterrows():
-        cols = st.columns([1, 3, 3, 1, 1, 1, 1, 1])
+        cols = st.columns([1, 3, 3, 1, 1, 1, 1, 1, 1])
         cols[0].markdown(row["date_str"])
         cols[1].markdown(row["game"])
         # Legs as pills
