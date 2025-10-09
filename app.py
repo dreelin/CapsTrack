@@ -13,48 +13,6 @@ from oauth2client.service_account import ServiceAccountCredentials
 
 st.set_page_config(page_title="Caps Bet Tracker", layout="wide", initial_sidebar_state="collapsed")
 
-hide_streamlit_style = """
-    <style>
-    /* Hide hamburger menu */
-    #MainMenu {visibility: hidden;}
-    /* Hide footer */
-    footer {visibility: hidden;}
-    /* Optional: hide header bar */
-    header {visibility: hidden;}
-    </style>
-"""
-st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-
-st.markdown("""
-    <style>
-    .css-18e3th9 {padding-top: 0rem;}   /* Main container top padding */
-    .css-1d391kg {padding-top: 0rem;}   /* Older versions may need this */
-    </style>
-""", unsafe_allow_html=True)
-
-
-st.markdown("""
-<style>
-/* Collapse only top-level st-emotion-cache elements that are empty or contain just style blocks */
-[class^="st-emotion-cache-"] > :empty {
-    height: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: hidden !important;
-}
-
-/* Remove main container top padding */
-.css-18e3th9 {padding-top: 0rem !important;}
-.css-1d391kg {padding-top: 0rem !important;}
-
-/* Hide Streamlit default menu, header, footer */
-#MainMenu {visibility: hidden;}
-header {visibility: hidden;}
-footer {visibility: hidden;}
-</style>
-""", unsafe_allow_html=True)
-
-
 st.markdown("""
 <script>
 document.addEventListener('DOMContentLoaded', () => {
@@ -510,7 +468,7 @@ with st.expander("Add Bet", expanded=False):
 # -----------------------------
 # Bet History
 # -----------------------------
-st.subheader("69 Logs")
+st.subheader("69 Logss")
 
 def parse_legs(x):
     if isinstance(x, list):
