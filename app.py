@@ -9,6 +9,7 @@ from streamlit_cookies_manager import EncryptedCookieManager
 import ast
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Caps Bet Tracker", layout="wide", initial_sidebar_state="collapsed")
 
@@ -286,7 +287,8 @@ for i, game in enumerate(cards[:5]):
     away_style = "font-weight:bold;" if g["winning_side"] == "away" else ""
 
     # Compact HTML card
-    html = f"""<a href="{g['gamecast_url']}" target="_blank" style="text-decoration:none;color:inherit;">
+    html = f"""
+    <a href="{g['gamecast_url']}" target="_blank" style="text-decoration:none;color:inherit;">
     <div style="
         border-radius:10px;
         border:1px solid #ccc;
@@ -301,7 +303,6 @@ for i, game in enumerate(cards[:5]):
         flex-direction:column;
         justify-content:space-between;
     ">
-
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
             <strong style="font-weight:normal;">{g['date_str']}</strong>
             <strong>{result_text}</strong>
@@ -328,10 +329,12 @@ for i, game in enumerate(cards[:5]):
             </div>
             <span style="align-self:center;">{g['home_score']}</span>
         </div>
-
     </div>
-    </a>"""
-    cols[i].markdown(html, unsafe_allow_html=True)
+    </a>
+    """
+
+    # Render HTML reliably
+    components.html(html, height=150, scrolling=False, key=f"card_{i}")
 
 
 
