@@ -343,7 +343,7 @@ def build_card_html(g):
     """
 
 # Build the row of cards
-row_html = '<div style="display:flex; overflow-x:auto; padding-bottom:10px;">'
+row_html = '<div style="display:flex; overflow-x:auto; padding-bottom:10px;justify-content: space-between;">'
 for g in cards_to_show:
     row_html += build_card_html(g)
 row_html += "</div>"
