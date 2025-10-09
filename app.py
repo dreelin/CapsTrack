@@ -287,14 +287,35 @@ for i, game in enumerate(cards[:5]):
     away_style = "font-weight:bold;" if g["winning_side"] == "away" else ""
 
     # Compact HTML card
-    html = f"""
-    <a href="{g['gamecast_url']}" target="_blank" style="text-decoration:none;color:inherit;">
+row_html = '<div style="display:flex; gap:10px;">'
+
+for game in cards[:5]:
+    g = game
+
+    # Determine background color and result
+    if g.get("completed"):
+        caps_won = (g["winner"] == "Washington Capitals")
+        bg_color = "#d4f4dd" if caps_won else "#f8d3d3"
+        result_text = "W" if caps_won else "L"
+    else:
+        bg_color = "#ffffff"
+        result_text = ""
+
+    # Logos
+    away_logo = str(get_team_logo({"team": {"displayName": g["away_team"]}}, g.get("away_logo") or ""))
+    home_logo = str(get_team_logo({"team": {"displayName": g["home_team"]}}, g.get("home_logo") or ""))
+
+    # Bold style for winning team
+    away_weight = "bold" if g.get("winning_side") == "away" else "normal"
+    home_weight = "bold" if g.get("winning_side") == "home" else "normal"
+
+    # Build individual card HTML
+    card_html = f"""
     <div style="
         border-radius:10px;
         border:1px solid #ccc;
         padding:10px;
-        margin:5px;
-        width:250px;
+        min-width:250px;
         min-height:100px;
         background-color:{bg_color};
         color:black;
@@ -302,39 +323,43 @@ for i, game in enumerate(cards[:5]):
         display:flex;
         flex-direction:column;
         justify-content:space-between;
+        font-family: sans-serif;
     ">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-            <strong style="font-weight:normal;">{g['date_str']}</strong>
+            <strong style="font-weight:bold;">{g.get('date_str','')}</strong>
             <strong>{result_text}</strong>
         </div>
 
         <div style="display:flex; justify-content:space-between; align-items:center;">
             <div style="display:flex; flex-direction:column;">
-                <span style="font-weight:{'bold' if g['winning_side']=='away' else 'normal'};">
+                <span style="font-weight:{away_weight};">
                     <img src="{away_logo}" width="20" style="vertical-align:middle; margin-right:5px;">
-                    {g['away_team']}
+                    {g.get('away_team','')}
                 </span>
                 <small style="color:gray; margin-top:0px;">{g.get('away_record','&nbsp;') or '&nbsp;'}</small>
             </div>
-            <span style="align-self:center;">{g['away_score']}</span>
+            <span style="align-self:center;">{g.get('away_score','')}</span>
         </div>
 
         <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
             <div style="display:flex; flex-direction:column;">
-                <span style="font-weight:{'bold' if g['winning_side']=='home' else 'normal'};">
+                <span style="font-weight:{home_weight};">
                     <img src="{home_logo}" width="20" style="vertical-align:middle; margin-right:5px;">
-                    {g['home_team']}
+                    {g.get('home_team','')}
                 </span>
                 <small style="color:gray; margin-top:0px;">{g.get('home_record','&nbsp;') or '&nbsp;'}</small>
             </div>
-            <span style="align-self:center;">{g['home_score']}</span>
+            <span style="align-self:center;">{g.get('home_score','')}</span>
         </div>
     </div>
-    </a>
     """
+    row_html += card_html
 
-    # Render HTML reliably
-    components.html(html, height=150, scrolling=False)
+# Close the row container
+row_html += "</div>"
+
+# Render all cards in one horizontal row
+components.html(row_html, height=180, scrolling=True)
 
 
 
