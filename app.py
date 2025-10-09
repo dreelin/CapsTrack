@@ -158,9 +158,12 @@ def fetch_espn_schedule(team_id):
                 return score_data or ""
 
             def extract_record(team):
-                records = team.get("records", [])
-                if records:
-                    return records[0].get("summary", "")
+                records = team.get("record", [])
+                if not records:
+                    return ""
+                for rec in records:
+                    if rec.get("type") == "ytd":
+                        return rec.get("displayValue", "")
                 return ""
 
             home_team = home.get("team", {}).get("displayName", "")
@@ -175,10 +178,10 @@ def fetch_espn_schedule(team_id):
             status_info = comp.get("status", {}).get("type", {})
             if status_info.get("completed"):
                 try:
-                    if int(home_score) > int(away_score):
-                        winner = "home"
-                    elif int(away_score) > int(home_score):
-                        winner = "away"
+                    if home_team.get("winner"):
+                        winner = home_team
+                    elif away_team.get("winner"):
+                        winner = away_team
                 except ValueError:
                     pass
 
@@ -191,7 +194,8 @@ def fetch_espn_schedule(team_id):
                 "home_record": home_record,
                 "away_record": away_record,
                 "winner": winner,
-                "status_type": status_info.get("name", "").lower(),
+                "completed": status_info.get("completed", False),
+                "status_type": status_info.get("description", ""),
                 "date_obj": dt,
                 "date_str": dt.strftime("%-m/%-d %-I:%M %p ET"),
                 "gamecast_url": next((l["href"] for l in g.get("links", [])
@@ -210,8 +214,8 @@ def fetch_espn_schedule(team_id):
 # Scoreboard
 # -----------------------------
 games = fetch_espn_schedule(TEAM_ID)
-past_games = [g for g in games if g["status_type"] == "completed"]
-future_games = [g for g in games if g["status_type"] != "completed"]
+past_games = [g for g in games if g["completed"] == True]
+future_games = [g for g in games if g["completed"] == False]
 cards = past_games[-2:] + future_games[:3]
 if len(cards) < 5:
     needed = 5 - len(cards)
@@ -243,11 +247,8 @@ for i, game in enumerate(cards[:5]):
     g = game
 
     # Determine background color for completed games
-    if g["status_type"] == "completed":
-        caps_won = (
-            (g["home_team"] == "Washington Capitals" and int(g["home_score"]) > int(g["away_score"])) or
-            (g["away_team"] == "Washington Capitals" and int(g["away_score"]) > int(g["home_score"]))
-        )
+    if g["completed"] == True:
+        caps_won = (g["winner"] == "Washington Capitals")
         bg_color = "#d4f4dd" if caps_won else "#f8d3d3"
         result_text = "W" if caps_won else "L"
     else:
