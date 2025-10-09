@@ -62,10 +62,7 @@ if not cookies.ready():
 # -----------------------------
 # Authenticate with Google Sheets
 def get_gs_client():
-    scope = ["https://www.googleapis.com/auth/spreadsheets"]
-    creds_dict = gspread.service_account_from_dict(st.secrets["gspread"])
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-    client = gspread.authorize(creds)
+    client = gspread.service_account_from_dict(st.secrets["gspread"])
     return client
 
 # Load bets
