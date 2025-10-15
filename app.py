@@ -426,23 +426,38 @@ if not bets.empty:
     # Convert dates to strings for categorical x-axis
     daily_profit["date_str"] = daily_profit["date"].dt.strftime("%m/%d")
 
-    # Altair chart: line + smileys on Caps wins
+    # Altair chart: line + emoji overlays by precedence
     line = alt.Chart(daily_profit).mark_line(color=final_color, size=3).encode(
         x=alt.X("date_str:N", title="Date"),
         y=alt.Y("cumulative_profit:Q", title="Cumulative Profit ($)")
     )
 
-    # Prepare overlays for Caps results
+    # Prepare overlays for Caps results and betting outcome
     win_dates = {g["date_obj"].date() for g in games if g.get("completed") and g.get("winner") == "Washington Capitals"}
     loss_dates = {g["date_obj"].date() for g in games if g.get("completed") and g.get("winner") and g.get("winner") != "Washington Capitals"}
 
-    # Smileys for wins
+    # Flags
+    daily_profit["bet_win_day"] = daily_profit["profit"] > 0
     daily_profit["caps_win"] = daily_profit["date"].dt.date.isin(win_dates)
-    smiley_url = "https://twemoji.maxcdn.com/v/latest/72x72/1f603.png"  # 😃
-    smiles_df = daily_profit[daily_profit["caps_win"]].copy()
+    daily_profit["caps_loss"] = daily_profit["date"].dt.date.isin(loss_dates)
+
     layers = [line]
+
+    # 1) Bet win day -> sweat droplets (💦), takes precedence
+    sweats_df = daily_profit[daily_profit["bet_win_day"]].copy()
+    if not sweats_df.empty:
+        sweats_df["img"] = "https://twemoji.maxcdn.com/v/latest/72x72/1f4a6.png"  # 💦
+        sweats = alt.Chart(sweats_df).mark_image(width=22, height=22).encode(
+            x="date_str:N",
+            y="cumulative_profit:Q",
+            url="img:N"
+        )
+        layers.append(sweats)
+
+    # 2) Caps win (and NOT a bet win day) -> smiley (🙃)
+    smiles_df = daily_profit[(~daily_profit["bet_win_day"]) & (daily_profit["caps_win"])].copy()
     if not smiles_df.empty:
-        smiles_df["img"] = smiley_url
+        smiles_df["img"] = "https://twemoji.maxcdn.com/v/latest/72x72/1f643.png"  # 🙃 upside-down face
         smiles = alt.Chart(smiles_df).mark_image(width=22, height=22).encode(
             x="date_str:N",
             y="cumulative_profit:Q",
@@ -450,12 +465,10 @@ if not bets.empty:
         )
         layers.append(smiles)
 
-    # Red cursing face for losses
-    daily_profit["caps_loss"] = daily_profit["date"].dt.date.isin(loss_dates)
-    curse_url = "https://twemoji.maxcdn.com/v/latest/72x72/1f92c.png"  # 🤬
-    curses_df = daily_profit[daily_profit["caps_loss"]].copy()
+    # 3) Caps loss (and NOT a bet win day) -> cursing face (🤬)
+    curses_df = daily_profit[(~daily_profit["bet_win_day"]) & (daily_profit["caps_loss"])].copy()
     if not curses_df.empty:
-        curses_df["img"] = curse_url
+        curses_df["img"] = "https://twemoji.maxcdn.com/v/latest/72x72/1f92c.png"  # 🤬
         curses = alt.Chart(curses_df).mark_image(width=22, height=22).encode(
             x="date_str:N",
             y="cumulative_profit:Q",
