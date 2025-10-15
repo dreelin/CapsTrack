@@ -426,19 +426,28 @@ if not bets.empty:
     # Convert dates to strings for categorical x-axis
     daily_profit["date_str"] = daily_profit["date"].dt.strftime("%m/%d")
 
-    # Altair chart: line + points
+    # Altair chart: line + smileys on Caps wins
     line = alt.Chart(daily_profit).mark_line(color=final_color, size=3).encode(
         x=alt.X("date_str:N", title="Date"),
         y=alt.Y("cumulative_profit:Q", title="Cumulative Profit ($)")
     )
 
-    points = alt.Chart(daily_profit).mark_point(size=60).encode(
-        x="date_str:N",
-        y="cumulative_profit:Q",
-        color=alt.Color("color:N", scale=None)
-    )
+    # Prepare smiley overlay for days Caps won
+    win_dates = {g["date_obj"].date() for g in games if g.get("completed") and g.get("winner") == "Washington Capitals"}
+    daily_profit["caps_win"] = daily_profit["date"].dt.date.isin(win_dates)
+    smiley_url = "https://twemoji.maxcdn.com/v/latest/72x72/1f603.png"  # 😃
+    smiles_df = daily_profit[daily_profit["caps_win"]].copy()
+    if not smiles_df.empty:
+        smiles_df["img"] = smiley_url
+        smiles = alt.Chart(smiles_df).mark_image(width=22, height=22).encode(
+            x="date_str:N",
+            y="cumulative_profit:Q",
+            url="img:N"
+        )
+        chart = (line + smiles).properties(height=300, width="container").interactive(bind_x=False, bind_y=False)
+    else:
+        chart = line.properties(height=300, width="container").interactive(bind_x=False, bind_y=False)
 
-    chart = (line + points).properties(height=300, width="container").interactive(bind_x=False, bind_y=False)
     st.altair_chart(chart, use_container_width=True)
 else:
     st.info("Still edging...")
