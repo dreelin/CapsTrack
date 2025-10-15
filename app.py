@@ -432,11 +432,15 @@ if not bets.empty:
         y=alt.Y("cumulative_profit:Q", title="Cumulative Profit ($)")
     )
 
-    # Prepare smiley overlay for days Caps won
+    # Prepare overlays for Caps results
     win_dates = {g["date_obj"].date() for g in games if g.get("completed") and g.get("winner") == "Washington Capitals"}
+    loss_dates = {g["date_obj"].date() for g in games if g.get("completed") and g.get("winner") and g.get("winner") != "Washington Capitals"}
+
+    # Smileys for wins
     daily_profit["caps_win"] = daily_profit["date"].dt.date.isin(win_dates)
     smiley_url = "https://twemoji.maxcdn.com/v/latest/72x72/1f603.png"  # 😃
     smiles_df = daily_profit[daily_profit["caps_win"]].copy()
+    layers = [line]
     if not smiles_df.empty:
         smiles_df["img"] = smiley_url
         smiles = alt.Chart(smiles_df).mark_image(width=22, height=22).encode(
@@ -444,9 +448,22 @@ if not bets.empty:
             y="cumulative_profit:Q",
             url="img:N"
         )
-        chart = (line + smiles).properties(height=300, width="container").interactive(bind_x=False, bind_y=False)
-    else:
-        chart = line.properties(height=300, width="container").interactive(bind_x=False, bind_y=False)
+        layers.append(smiles)
+
+    # Red cursing face for losses
+    daily_profit["caps_loss"] = daily_profit["date"].dt.date.isin(loss_dates)
+    curse_url = "https://twemoji.maxcdn.com/v/latest/72x72/1f92c.png"  # 🤬
+    curses_df = daily_profit[daily_profit["caps_loss"]].copy()
+    if not curses_df.empty:
+        curses_df["img"] = curse_url
+        curses = alt.Chart(curses_df).mark_image(width=22, height=22).encode(
+            x="date_str:N",
+            y="cumulative_profit:Q",
+            url="img:N"
+        )
+        layers.append(curses)
+
+    chart = alt.layer(*layers).properties(height=300, width="container").interactive(bind_x=False, bind_y=False)
 
     st.altair_chart(chart, use_container_width=True)
 else:
